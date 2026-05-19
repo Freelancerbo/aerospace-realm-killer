@@ -82,9 +82,6 @@ Visit Live Site:
 
 **Tafseer Haider**
 
-LinkedIn: [*(Add your LinkedIn profile link)*  ](https://www.linkedin.com/in/tafseer-haider-5b16ba320/)
-GitHub: *(Add your GitHub profile link)*
-
 ---
 
 ## ⭐ Support
