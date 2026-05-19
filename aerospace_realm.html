@@ -1,0 +1,3924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEROSPACE REALM — by Tafseer Haider</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --navy:     #030d1a;
+    --deep:     #050f20;
+    --mid:      #081a32;
+    --blue:     #0a2040;
+    --electric: #00e5ff;
+    --glow:     #00b8ff;
+    --cyan:     #00ffd5;
+    --purple:   #7b2fff;
+    --violet:   #a855f7;
+    --orange:   #ff5c00;
+    --amber:    #ffb700;
+    --red:      #ff2d55;
+    --green:    #00ff88;
+    --white:    #eaf6ff;
+    --muted:    #6fb3d8;
+    --font-h:   'Orbitron', monospace;
+    --font-b:   'Rajdhani', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-b);
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* ─── CURSOR ─────────────────────────────────── */
+  #cursor {
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    pointer-events: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--electric), transparent 70%);
+    box-shadow: 0 0 14px var(--electric), 0 0 35px rgba(0,229,255,0.5);
+    transform: translate(-50%,-50%);
+    transition: width .15s, height .15s, box-shadow .15s;
+  }
+  #cursor.big {
+    width: 40px; height: 40px;
+    box-shadow: 0 0 24px var(--electric), 0 0 60px rgba(0,229,255,0.5);
+  }
+  #cursor-trail {
+    position: fixed; top: 0; left: 0; z-index: 9998;
+    pointer-events: none;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    opacity: 0.75;
+    transform: translate(-50%,-50%);
+    transition: left .08s, top .08s;
+  }
+
+  /* ─── CANVAS BG ───────────────────────────────── */
+  #canvas-bg {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+  }
+
+  /* ─── SCAN LINES ──────────────────────────────── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 2px,
+      rgba(0,229,255,0.012) 2px, rgba(0,229,255,0.012) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  main { position: relative; z-index: 2; }
+
+  /* ─── NAVBAR ──────────────────────────────────── */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 2.5rem;
+    background: rgba(3,13,26,0.7);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid rgba(0,229,255,0.08);
+  }
+  .nav-logo {
+    font-family: var(--font-h);
+    font-size: .9rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--electric), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    text-decoration: none;
+  }
+  .nav-links {
+    display: flex; gap: 2rem; list-style: none;
+  }
+  .nav-links a {
+    font-family: var(--font-b);
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color .3s;
+    position: relative;
+  }
+  .nav-links a::after {
+    content: '';
+    position: absolute; left: 0; bottom: -3px;
+    width: 0; height: 1px;
+    background: var(--electric);
+    transition: width .3s;
+  }
+  .nav-links a:hover { color: var(--electric); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-status {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .7rem; font-family: var(--font-b);
+    letter-spacing: 2px; color: var(--green);
+  }
+  .nav-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+
+  /* ─── HERO ────────────────────────────────────── */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 7rem 1rem 4rem;
+    position: relative;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: .5rem;
+    background: rgba(0,229,255,0.07);
+    border: 1px solid rgba(0,229,255,0.28);
+    border-radius: 100px;
+    padding: .4rem 1.3rem;
+    font-family: var(--font-b);
+    font-size: .78rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--electric);
+    margin-bottom: 1.8rem;
+    opacity: 0; animation: fadeUp .8s .2s forwards;
+  }
+  .hero h1 {
+    font-family: var(--font-h);
+    font-size: clamp(2.8rem, 8vw, 6rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, #fff 0%, var(--electric) 35%, var(--cyan) 55%, var(--amber) 80%, var(--orange) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 1rem;
+    opacity: 0; animation: fadeUp .8s .4s forwards;
+    filter: drop-shadow(0 0 30px rgba(0,229,255,0.25));
+  }
+  .hero-glass {
+    display: inline-block;
+    background: rgba(0,229,255,0.05);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0,229,255,0.18);
+    border-radius: 14px;
+    padding: .85rem 2.2rem;
+    margin-bottom: 2.8rem;
+    opacity: 0; animation: fadeUp .8s .6s forwards;
+  }
+  .hero-glass p {
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    color: var(--muted);
+    font-weight: 300;
+    letter-spacing: 1.5px;
+  }
+  .hero-glass p span { color: var(--electric); font-weight: 700; }
+
+  .cta-row {
+    display: flex; flex-wrap: wrap; gap: 1.2rem; justify-content: center;
+    margin-bottom: 2rem;
+    opacity: 0; animation: fadeUp .8s .8s forwards;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: .65rem;
+    padding: .95rem 2.2rem;
+    border-radius: 10px;
+    font-family: var(--font-h);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    position: relative; overflow: hidden;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease;
+  }
+  .btn::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.1);
+    transform: translateX(-110%);
+    transition: transform .35s ease;
+  }
+  .btn:hover::before { transform: translateX(0); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--electric), #0060ff);
+    color: #000;
+    box-shadow: 0 0 22px rgba(0,229,255,0.45), 0 0 60px rgba(0,229,255,0.15);
+  }
+  .btn-primary:hover {
+    transform: translateY(-5px) scale(1.06);
+    box-shadow: 0 0 45px rgba(0,229,255,0.75), 0 12px 35px rgba(0,0,0,0.35);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--amber);
+    border: 1.5px solid var(--amber);
+    box-shadow: 0 0 12px rgba(255,183,0,0.2);
+  }
+  .btn-secondary:hover {
+    transform: translateY(-5px) scale(1.06);
+    background: rgba(255,183,0,0.1);
+    box-shadow: 0 0 40px rgba(255,183,0,0.65), 0 12px 35px rgba(0,0,0,0.35);
+  }
+  .btn-purple {
+    background: linear-gradient(135deg, var(--purple), var(--violet));
+    color: #fff;
+    box-shadow: 0 0 22px rgba(123,47,255,0.4);
+  }
+  .btn-purple:hover {
+    transform: translateY(-5px) scale(1.06);
+    box-shadow: 0 0 45px rgba(123,47,255,0.7), 0 12px 35px rgba(0,0,0,0.35);
+  }
+
+  .scroll-hint {
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: .4rem;
+    color: var(--muted); font-size: .68rem; letter-spacing: 2.5px;
+    opacity: 0; animation: fadeUp .8s 1.3s forwards;
+  }
+  .scroll-hint .bar {
+    width: 1px; height: 42px;
+    background: linear-gradient(to bottom, var(--electric), transparent);
+    animation: scrollBar 1.6s ease-in-out infinite;
+  }
+  @keyframes scrollBar {
+    0%,100% { opacity: 1; transform: scaleY(1); }
+    50% { opacity: .25; transform: scaleY(.45); }
+  }
+
+  /* ─── SECTIONS ───────────────────────────────── */
+  .section {
+    padding: 5rem 2rem;
+    max-width: 1350px;
+    margin: 0 auto;
+  }
+  .section-label {
+    text-align: center;
+    font-family: var(--font-b);
+    font-size: .73rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--electric);
+    margin-bottom: .5rem;
+    display: flex; align-items: center; justify-content: center; gap: .5rem;
+  }
+  .section-title {
+    text-align: center;
+    font-family: var(--font-h);
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 3.5rem;
+  }
+  .section-title span {
+    background: linear-gradient(90deg, var(--electric), var(--cyan), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  /* ─── CARDS GRID ─────────────────────────────── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1.6rem;
+  }
+  .card {
+    background: rgba(5,20,50,0.55);
+    border: 1px solid rgba(0,229,255,0.13);
+    border-radius: 18px;
+    padding: 2.2rem 1.6rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1),
+                border-color .3s, box-shadow .3s;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--electric), var(--cyan), transparent);
+    opacity: 0; transition: opacity .3s;
+  }
+  .card::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(0,229,255,0.07), transparent 70%);
+    opacity: 0; transition: opacity .4s;
+  }
+  .card:hover {
+    transform: translateY(-12px) scale(1.04);
+    border-color: var(--electric);
+    box-shadow: 0 0 35px rgba(0,229,255,0.28), 0 25px 50px rgba(0,0,0,0.45);
+  }
+  .card:hover::before { opacity: 1; }
+  .card:hover::after  { opacity: 1; }
+
+  .card-icon {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(0,229,255,0.07);
+    border: 1.5px solid rgba(0,229,255,0.28);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.3rem;
+    font-size: 1.7rem;
+    color: var(--electric);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), color .3s, background .3s, box-shadow .3s;
+    position: relative; z-index: 1;
+  }
+  .card:hover .card-icon {
+    transform: rotate(20deg) scale(1.22);
+    color: var(--amber);
+    background: rgba(255,183,0,0.12);
+    border-color: var(--amber);
+    box-shadow: 0 0 22px rgba(255,183,0,0.45);
+  }
+  .card h3 {
+    font-family: var(--font-h);
+    font-size: .84rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    margin-bottom: .65rem;
+    color: var(--white);
+    position: relative; z-index: 1;
+  }
+  .card p {
+    font-size: .87rem;
+    color: var(--muted);
+    line-height: 1.65;
+    font-weight: 300;
+    position: relative; z-index: 1;
+  }
+  .card-tag {
+    display: inline-block;
+    margin-top: 1rem;
+    font-size: .66rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--electric);
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 100px;
+    padding: .22rem .85rem;
+    position: relative; z-index: 1;
+  }
+  .card-click-hint {
+    display: inline-flex; align-items: center; gap: .3rem;
+    margin-top: .8rem;
+    font-size: .65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(0,229,255,0.45);
+    position: relative; z-index: 1;
+    transition: color .3s;
+  }
+  .card:hover .card-click-hint { color: var(--electric); }
+
+  /* ─── STATS ──────────────────────────────────── */
+  .stats-strip {
+    background: rgba(0,15,40,0.65);
+    border-top: 1px solid rgba(0,229,255,0.1);
+    border-bottom: 1px solid rgba(0,229,255,0.1);
+    padding: 4.5rem 2rem;
+    backdrop-filter: blur(12px);
+  }
+  .stats-inner {
+    max-width: 950px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 2rem; text-align: center;
+  }
+  .stat-box {
+    padding: 1.8rem 1rem;
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 14px;
+    position: relative;
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), border-color .3s, box-shadow .3s;
+    opacity: 0;
+    background: rgba(0,229,255,0.02);
+    overflow: hidden;
+  }
+  .stat-box::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--electric), transparent);
+    opacity: 0; transition: opacity .3s;
+  }
+  .stat-box:hover {
+    transform: translateY(-10px) scale(1.06);
+    border-color: var(--electric);
+    box-shadow: 0 0 28px rgba(0,229,255,0.22);
+  }
+  .stat-box:hover::before { opacity: 1; }
+  .stat-num {
+    font-family: var(--font-h);
+    font-size: 2.6rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--electric), var(--cyan), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1;
+    margin-bottom: .45rem;
+  }
+  .stat-label {
+    font-size: .78rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  /* ─── TECH PILLS ─────────────────────────────── */
+  .tech-section {
+    padding: 3.5rem 2rem 5rem;
+    max-width: 1350px; margin: 0 auto;
+  }
+  .tech-strip {
+    display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;
+  }
+  .tech-pill {
+    display: flex; align-items: center; gap: .55rem;
+    background: rgba(5,20,50,0.55);
+    border: 1px solid rgba(0,229,255,0.13);
+    border-radius: 100px;
+    padding: .55rem 1.3rem;
+    font-size: .78rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    font-weight: 600;
+    transition: border-color .3s, color .3s, box-shadow .3s, transform .3s;
+    cursor: default;
+  }
+  .tech-pill i { color: var(--electric); font-size: .8rem; }
+  .tech-pill:hover {
+    border-color: var(--electric);
+    color: var(--white);
+    box-shadow: 0 0 18px rgba(0,229,255,0.22);
+    transform: translateY(-3px);
+  }
+
+  /* ─── MISSION SECTION ────────────────────────── */
+  .mission-section {
+    padding: 5rem 2rem;
+    background: rgba(0,15,40,0.5);
+    border-top: 1px solid rgba(0,229,255,0.08);
+    border-bottom: 1px solid rgba(0,229,255,0.08);
+    backdrop-filter: blur(10px);
+  }
+  .mission-inner {
+    max-width: 1350px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4rem;
+    align-items: center;
+  }
+  .mission-text h2 {
+    font-family: var(--font-h);
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    font-weight: 700;
+    margin-bottom: 1.2rem;
+    line-height: 1.25;
+  }
+  .mission-text h2 span {
+    background: linear-gradient(90deg, var(--electric), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .mission-text p {
+    color: var(--muted); font-size: 1rem; line-height: 1.8; margin-bottom: 1.5rem;
+  }
+  .mission-specs {
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .spec-row {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .9rem 1.2rem;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 10px;
+    transition: border-color .3s, background .3s;
+  }
+  .spec-row:hover {
+    border-color: rgba(0,229,255,0.3);
+    background: rgba(0,229,255,0.07);
+  }
+  .spec-row i { color: var(--electric); font-size: 1.1rem; width: 24px; text-align: center; }
+  .spec-label { font-size: .78rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+  .spec-value { margin-left: auto; font-family: var(--font-h); font-size: .75rem; color: var(--amber); letter-spacing: 1px; }
+
+  /* ─── TIMELINE ───────────────────────────────── */
+  .timeline {
+    display: flex; flex-direction: column; gap: 1.5rem;
+  }
+  .timeline-item {
+    display: flex; gap: 1.2rem;
+    padding: 1.2rem 1.4rem;
+    background: rgba(5,20,50,0.5);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 14px;
+    border-left: 3px solid var(--electric);
+    transition: transform .3s, box-shadow .3s;
+    opacity: 0;
+  }
+  .timeline-item:nth-child(2) { border-left-color: var(--amber); }
+  .timeline-item:nth-child(3) { border-left-color: var(--purple); }
+  .timeline-item:nth-child(4) { border-left-color: var(--green); }
+  .timeline-item:hover {
+    transform: translateX(8px);
+    box-shadow: 0 0 20px rgba(0,229,255,0.12);
+  }
+  .tl-icon {
+    width: 44px; height: 44px; flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: var(--electric);
+  }
+  .timeline-item:nth-child(2) .tl-icon { color: var(--amber); border-color: rgba(255,183,0,0.3); background: rgba(255,183,0,0.08); }
+  .timeline-item:nth-child(3) .tl-icon { color: var(--violet); border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.08); }
+  .timeline-item:nth-child(4) .tl-icon { color: var(--green); border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.08); }
+  .tl-content h4 { font-family: var(--font-h); font-size: .78rem; font-weight: 700; letter-spacing: 1px; margin-bottom: .3rem; color: var(--white); }
+  .tl-content p  { font-size: .83rem; color: var(--muted); line-height: 1.5; }
+  .tl-phase { font-size: .62rem; letter-spacing: 2px; color: var(--electric); text-transform: uppercase; margin-bottom: .2rem; }
+  .timeline-item:nth-child(2) .tl-phase { color: var(--amber); }
+  .timeline-item:nth-child(3) .tl-phase { color: var(--violet); }
+  .timeline-item:nth-child(4) .tl-phase { color: var(--green); }
+
+  /* ─── TRACKING SECTION ───────────────────────── */
+  .tracking-section {
+    padding: 5rem 2rem;
+    max-width: 1350px; margin: 0 auto;
+  }
+  .tracking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.6rem;
+  }
+  .track-card {
+    background: rgba(5,20,50,0.55);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 18px;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
+    opacity: 0;
+  }
+  .track-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(0,229,255,0.35);
+    box-shadow: 0 0 30px rgba(0,229,255,0.18), 0 20px 40px rgba(0,0,0,0.4);
+  }
+  .track-header {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .track-icon {
+    width: 50px; height: 50px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+  }
+  .track-title { font-family: var(--font-h); font-size: .8rem; font-weight: 700; letter-spacing: 1px; }
+  .track-subtitle { font-size: .75rem; color: var(--muted); letter-spacing: 1px; margin-top: .2rem; }
+  .track-metrics { display: flex; flex-direction: column; gap: .8rem; }
+  .metric-row {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: .82rem;
+  }
+  .metric-name { color: var(--muted); }
+  .metric-value { font-family: var(--font-h); font-size: .76rem; font-weight: 700; }
+  .metric-bar-wrap {
+    width: 100%;
+    height: 3px;
+    background: rgba(0,229,255,0.08);
+    border-radius: 2px;
+    margin-top: .3rem;
+    overflow: hidden;
+  }
+  .metric-bar {
+    height: 100%;
+    border-radius: 2px;
+    animation: barGrow 1.5s ease forwards;
+    transform-origin: left;
+  }
+  @keyframes barGrow { from { width: 0; } }
+
+  .status-dot {
+    display: inline-block;
+    width: 7px; height: 7px; border-radius: 50%;
+    margin-right: .4rem;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+
+  /* ─── FOOTER ─────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 3.5rem 1rem 2.5rem;
+    border-top: 1px solid rgba(0,229,255,0.08);
+    position: relative;
+  }
+  .footer-logo {
+    font-family: var(--font-h);
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(90deg, var(--electric), var(--cyan), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: .5rem;
+    animation: glow 2.5s ease-in-out infinite alternate;
+  }
+  @keyframes glow {
+    from { filter: drop-shadow(0 0 5px rgba(0,229,255,0.4)); }
+    to   { filter: drop-shadow(0 0 15px rgba(0,229,255,0.8)); }
+  }
+  .footer-plane {
+    font-size: 2rem;
+    display: inline-block;
+    margin-bottom: .8rem;
+    animation: planeFly 4s ease-in-out infinite;
+  }
+  @keyframes planeFly {
+    0%,100% { transform: translateY(0) rotate(-5deg); }
+    50%      { transform: translateY(-10px) rotate(5deg); }
+  }
+  footer p { font-size: .82rem; color: var(--muted); letter-spacing: 1px; }
+  .footer-links {
+    display: flex; justify-content: center; gap: 1.5rem;
+    margin: 1.2rem 0;
+  }
+  .footer-links a {
+    color: var(--muted);
+    font-size: 1.2rem;
+    transition: color .3s, transform .3s;
+    text-decoration: none;
+  }
+  .footer-links a:hover { color: var(--electric); transform: translateY(-4px); }
+
+  /* ═══════════════════════════════════════════════
+     MODAL / PAGE OVERLAY
+  ═══════════════════════════════════════════════ */
+  .page-overlay {
+    position: fixed; inset: 0; z-index: 5000;
+    background: rgba(3,13,26,0.96);
+    backdrop-filter: blur(20px);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .4s ease;
+  }
+  .page-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .overlay-header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2.5rem;
+    background: rgba(3,13,26,0.9);
+    border-bottom: 1px solid rgba(0,229,255,0.1);
+    backdrop-filter: blur(16px);
+  }
+  .overlay-title {
+    font-family: var(--font-h);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--electric), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .overlay-close {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: rgba(0,229,255,0.07);
+    border: 1px solid rgba(0,229,255,0.22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    color: var(--electric);
+    cursor: pointer;
+    transition: background .3s, transform .3s, box-shadow .3s;
+  }
+  .overlay-close:hover {
+    background: rgba(0,229,255,0.15);
+    transform: rotate(90deg);
+    box-shadow: 0 0 18px rgba(0,229,255,0.35);
+  }
+  .overlay-body {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 2rem 5rem;
+    width: 100%;
+  }
+
+  /* ─── DISCIPLINE PAGE ─────────────────────────── */
+  .disc-hero {
+    display: flex; gap: 3rem; align-items: flex-start;
+    margin-bottom: 4rem;
+    flex-wrap: wrap;
+  }
+  .disc-icon-wrap {
+    flex-shrink: 0;
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem;
+    border: 2px solid rgba(0,229,255,0.35);
+    background: rgba(0,229,255,0.07);
+    box-shadow: 0 0 40px rgba(0,229,255,0.2);
+    animation: pulseIcon 3s ease-in-out infinite;
+  }
+  @keyframes pulseIcon {
+    0%,100% { box-shadow: 0 0 30px rgba(0,229,255,0.2); }
+    50%      { box-shadow: 0 0 60px rgba(0,229,255,0.45); }
+  }
+  .disc-intro { flex: 1; min-width: 250px; }
+  .disc-intro h1 {
+    font-family: var(--font-h);
+    font-size: clamp(1.6rem, 4vw, 2.5rem);
+    font-weight: 900;
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--white), var(--electric), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: .5rem;
+  }
+  .disc-intro .sub {
+    font-size: .8rem;
+    letter-spacing: 3px;
+    color: var(--electric);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .disc-intro p {
+    color: var(--muted); font-size: 1rem; line-height: 1.85; font-weight: 300;
+  }
+
+  .disc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  .disc-block {
+    background: rgba(5,20,50,0.6);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 16px;
+    padding: 1.8rem;
+    transition: transform .3s, border-color .3s, box-shadow .3s;
+  }
+  .disc-block:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0,229,255,0.3);
+    box-shadow: 0 0 25px rgba(0,229,255,0.12);
+  }
+  .disc-block-icon {
+    font-size: 1.6rem;
+    margin-bottom: .8rem;
+    color: var(--electric);
+  }
+  .disc-block h3 {
+    font-family: var(--font-h);
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: .5rem;
+    color: var(--white);
+  }
+  .disc-block p {
+    font-size: .85rem;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .disc-specs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .spec-chip {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .9rem 1.3rem;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 10px;
+  }
+  .spec-chip-label { font-size: .76rem; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .spec-chip-value { font-family: var(--font-h); font-size: .76rem; color: var(--amber); font-weight: 700; }
+
+  .disc-section-title {
+    font-family: var(--font-h);
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--electric);
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid rgba(0,229,255,0.12);
+    display: flex; align-items: center; gap: .6rem;
+  }
+
+  .disc-features {
+    display: flex; flex-wrap: wrap; gap: .7rem;
+    margin-bottom: 3rem;
+  }
+  .feature-tag {
+    display: inline-flex; align-items: center; gap: .4rem;
+    padding: .45rem 1rem;
+    background: rgba(0,229,255,0.06);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 100px;
+    font-size: .76rem;
+    color: var(--white);
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: background .3s, border-color .3s;
+  }
+  .feature-tag:hover {
+    background: rgba(0,229,255,0.13);
+    border-color: var(--electric);
+  }
+  .feature-tag i { color: var(--electric); font-size: .7rem; }
+
+  /* ─── LAUNCH PAGE ─────────────────────────────── */
+  .launch-hero {
+    text-align: center;
+    padding: 2rem 0 4rem;
+  }
+  .launch-hero h1 {
+    font-family: var(--font-h);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--white), var(--electric), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    margin-bottom: 1rem;
+  }
+  .launch-hero p {
+    color: var(--muted); font-size: 1rem; letter-spacing: 1px; margin-bottom: 2rem;
+  }
+  .countdown-strip {
+    display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;
+    margin: 2rem 0 3rem;
+  }
+  .countdown-box {
+    text-align: center;
+    min-width: 90px;
+    padding: 1.2rem 1.5rem;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 14px;
+    box-shadow: 0 0 20px rgba(0,229,255,0.1);
+  }
+  .countdown-num {
+    font-family: var(--font-h);
+    font-size: 2.4rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--electric), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1;
+  }
+  .countdown-label { font-size: .68rem; letter-spacing: 2.5px; color: var(--muted); text-transform: uppercase; margin-top: .3rem; }
+
+  .phase-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.4rem; margin-bottom: 3rem;
+  }
+  .phase-card {
+    padding: 1.8rem;
+    border-radius: 16px;
+    border: 1px solid;
+    position: relative; overflow: hidden;
+    transition: transform .3s, box-shadow .3s;
+  }
+  .phase-card:hover { transform: translateY(-6px); box-shadow: 0 0 30px rgba(0,229,255,0.15); }
+  .phase-card.p1 { border-color: rgba(0,229,255,0.2); background: rgba(0,229,255,0.04); }
+  .phase-card.p2 { border-color: rgba(255,183,0,0.2); background: rgba(255,183,0,0.04); }
+  .phase-card.p3 { border-color: rgba(123,47,255,0.2); background: rgba(123,47,255,0.04); }
+  .phase-card.p4 { border-color: rgba(0,255,136,0.2); background: rgba(0,255,136,0.04); }
+  .phase-num {
+    font-family: var(--font-h); font-size: .7rem; font-weight: 700;
+    letter-spacing: 2px; margin-bottom: .6rem;
+  }
+  .p1 .phase-num { color: var(--electric); }
+  .p2 .phase-num { color: var(--amber); }
+  .p3 .phase-num { color: var(--violet); }
+  .p4 .phase-num { color: var(--green); }
+  .phase-card h3 { font-family: var(--font-h); font-size: .84rem; font-weight: 700; letter-spacing: 1px; margin-bottom: .5rem; }
+  .phase-card p  { font-size: .83rem; color: var(--muted); line-height: 1.6; }
+
+  /* ─── TRACKING PAGE ───────────────────────────── */
+  .radar-display {
+    display: flex; flex-direction: column; align-items: center;
+    margin: 2rem 0 3rem;
+  }
+  #radarCanvas {
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(0,229,255,0.2), 0 0 80px rgba(0,229,255,0.08), inset 0 0 40px rgba(0,0,0,0.6);
+    cursor: crosshair;
+  }
+  .radar-label {
+    text-align: center;
+    margin-top: 1.2rem;
+    font-size: .7rem;
+    letter-spacing: 3px;
+    color: var(--electric);
+    text-transform: uppercase;
+  }
+
+  .systems-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+  }
+  .system-card {
+    padding: 1.8rem;
+    background: rgba(5,20,50,0.6);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 16px;
+    transition: transform .3s, box-shadow .3s, border-color .3s;
+  }
+  .system-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0,229,255,0.3);
+    box-shadow: 0 0 25px rgba(0,229,255,0.13);
+  }
+  .sys-header { display: flex; align-items: center; gap: .8rem; margin-bottom: 1.2rem; }
+  .sys-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+  }
+  .sys-name { font-family: var(--font-h); font-size: .78rem; font-weight: 700; letter-spacing: 1px; }
+  .sys-status { font-size: .68rem; letter-spacing: 2px; color: var(--green); text-transform: uppercase; margin-top: .2rem; }
+  .sys-bars { display: flex; flex-direction: column; gap: .7rem; }
+  .sys-bar-row { display: flex; align-items: center; gap: .8rem; }
+  .sys-bar-label { font-size: .74rem; color: var(--muted); min-width: 80px; }
+  .sys-bar-track {
+    flex: 1; height: 4px; border-radius: 2px;
+    background: rgba(0,229,255,0.08); overflow: hidden;
+  }
+  .sys-bar-fill {
+    height: 100%; border-radius: 2px;
+  }
+  .sys-bar-val { font-family: var(--font-h); font-size: .68rem; color: var(--white); min-width: 32px; text-align: right; }
+
+  /* ─── WEATHER WIDGET ────────────────────────────── */
+  #weatherWidget {
+    position: fixed;
+    right: 0; top: 50%;
+    transform: translateY(-50%);
+    z-index: 900;
+    display: flex; flex-direction: row;
+    align-items: stretch;
+  }
+  .weather-tab {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    background: rgba(0,229,255,0.12);
+    border: 1px solid rgba(0,229,255,0.25);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    padding: 1rem .5rem;
+    font-family: var(--font-h);
+    font-size: .62rem;
+    letter-spacing: 2px;
+    color: var(--electric);
+    cursor: pointer;
+    display: flex; align-items: center; gap: .4rem;
+    transition: background .3s;
+    backdrop-filter: blur(14px);
+  }
+  .weather-tab:hover { background: rgba(0,229,255,0.2); }
+  .weather-panel {
+    width: 0; overflow: hidden;
+    transition: width .4s cubic-bezier(.4,0,.2,1);
+    background: rgba(3,13,26,0.92);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-right: none;
+    backdrop-filter: blur(20px);
+  }
+  .weather-panel.open { width: 280px; }
+  .weather-panel-inner {
+    width: 280px;
+    padding: 1.4rem;
+  }
+  .wp-header {
+    font-family: var(--font-h); font-size: .7rem; font-weight: 700;
+    letter-spacing: 2px; color: var(--electric); margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .wp-location {
+    font-size: .73rem; color: var(--muted); margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .4rem; font-weight: 600;
+  }
+  .wp-temp {
+    font-family: var(--font-h); font-size: 2.8rem; font-weight: 900;
+    background: linear-gradient(135deg, var(--electric), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1; margin-bottom: .2rem;
+  }
+  .wp-condition {
+    font-size: .8rem; color: var(--white); margin-bottom: 1.2rem; font-weight: 600;
+  }
+  .wp-divider {
+    height: 1px; background: rgba(0,229,255,0.1); margin: 1rem 0;
+  }
+  .wp-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .78rem; padding: .35rem 0;
+  }
+  .wp-row-label { color: var(--muted); display: flex; align-items: center; gap: .4rem; }
+  .wp-row-label i { color: var(--electric); font-size: .7rem; width: 14px; }
+  .wp-row-value { font-family: var(--font-h); font-size: .72rem; color: var(--white); font-weight: 700; }
+  .wp-suitability {
+    margin-top: 1rem;
+    padding: .8rem 1rem;
+    border-radius: 10px;
+    font-size: .76rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    border: 1px solid;
+  }
+  .wp-suit-good { border-color: rgba(0,255,136,0.3); background: rgba(0,255,136,0.07); color: var(--green); }
+  .wp-suit-ok   { border-color: rgba(255,183,0,0.3); background: rgba(255,183,0,0.07); color: var(--amber); }
+  .wp-suit-bad  { border-color: rgba(255,45,85,0.3); background: rgba(255,45,85,0.07); color: var(--red); }
+  .wp-loading { color: var(--muted); font-size: .8rem; text-align: center; padding: 1.5rem 0; }
+  .wp-update { font-size: .62rem; color: rgba(111,179,216,0.4); letter-spacing: 1px; margin-top: .6rem; text-align: center; }
+
+  /* ─── AIRCRAFT PAGE ──────────────────────────── */
+  .aircraft-search-wrap {
+    position: sticky; top: 0; z-index: 5;
+    background: rgba(3,13,26,0.9);
+    padding: 1rem 0 1.2rem;
+    backdrop-filter: blur(16px);
+    margin-bottom: 2rem;
+  }
+  .aircraft-search {
+    width: 100%; max-width: 540px;
+    display: block; margin: 0 auto;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 10px;
+    padding: .75rem 1.3rem;
+    font-family: var(--font-b); font-size: .9rem;
+    color: var(--white);
+    outline: none;
+    transition: border-color .3s, box-shadow .3s;
+  }
+  .aircraft-search:focus {
+    border-color: var(--electric);
+    box-shadow: 0 0 20px rgba(0,229,255,0.2);
+  }
+  .aircraft-search::placeholder { color: var(--muted); }
+  .aircraft-filter-row {
+    display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; margin-top: .8rem;
+  }
+  .filter-btn {
+    padding: .35rem 1rem;
+    border-radius: 100px;
+    font-family: var(--font-b); font-size: .74rem; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; border: 1px solid rgba(0,229,255,0.2);
+    background: rgba(0,229,255,0.04); color: var(--muted);
+    transition: all .25s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    border-color: var(--electric); color: var(--electric);
+    background: rgba(0,229,255,0.1);
+  }
+
+  .aircraft-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.8rem;
+  }
+  .ac-card {
+    background: rgba(5,20,50,0.7);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 18px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .3s, border-color .3s;
+    position: relative;
+  }
+  .ac-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    border-color: rgba(0,229,255,0.4);
+    box-shadow: 0 0 40px rgba(0,229,255,0.2), 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .ac-img-wrap {
+    position: relative;
+    width: 100%; padding-top: 56%;
+    overflow: hidden;
+    background: rgba(0,10,30,0.8);
+  }
+  .ac-img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform .4s ease;
+    filter: brightness(0.85) saturate(1.1);
+  }
+  .ac-card:hover .ac-img { transform: scale(1.08); filter: brightness(1) saturate(1.2); }
+  .ac-img-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 50%, rgba(3,13,26,0.95) 100%);
+  }
+  .ac-gen-badge {
+    position: absolute; top: .8rem; left: .8rem;
+    padding: .25rem .7rem;
+    border-radius: 100px;
+    font-family: var(--font-h); font-size: .6rem;
+    font-weight: 700; letter-spacing: 1.5px;
+    backdrop-filter: blur(10px);
+  }
+  .ac-type-badge {
+    position: absolute; top: .8rem; right: .8rem;
+    padding: .25rem .7rem;
+    border-radius: 100px;
+    font-family: var(--font-b); font-size: .66rem;
+    font-weight: 600; letter-spacing: 1px;
+    backdrop-filter: blur(10px);
+    background: rgba(0,0,0,0.5); color: var(--muted);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .ac-body { padding: 1.4rem 1.5rem 1.5rem; }
+  .ac-country { font-size: .68rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: .3rem; }
+  .ac-name {
+    font-family: var(--font-h); font-size: 1rem; font-weight: 700; letter-spacing: 1px;
+    color: var(--white); margin-bottom: .2rem;
+  }
+  .ac-fullname { font-size: .8rem; color: var(--muted); margin-bottom: 1rem; }
+  .ac-specs-mini {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;
+    margin-bottom: 1rem;
+  }
+  .ac-spec-mini {
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.08);
+    border-radius: 8px;
+    padding: .4rem .7rem;
+  }
+  .ac-spec-mini-label { font-size: .6rem; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .ac-spec-mini-val { font-family: var(--font-h); font-size: .68rem; font-weight: 700; margin-top: .1rem; }
+  .ac-suitable {
+    padding: .55rem .9rem;
+    border-radius: 8px;
+    font-size: .73rem; font-weight: 600;
+    display: flex; align-items: flex-start; gap: .5rem;
+    border: 1px solid;
+  }
+  .ac-suitable i { flex-shrink: 0; margin-top: 2px; }
+
+  /* Aircraft Detail Modal */
+  .ac-detail-overlay {
+    position: fixed; inset: 0; z-index: 7000;
+    background: rgba(3,13,26,0.97);
+    backdrop-filter: blur(24px);
+    overflow-y: auto;
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s ease;
+  }
+  .ac-detail-overlay.open { opacity: 1; pointer-events: all; }
+  .ac-detail-header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2.5rem;
+    background: rgba(3,13,26,0.9);
+    border-bottom: 1px solid rgba(0,229,255,0.1);
+    backdrop-filter: blur(16px);
+  }
+  .ac-detail-back {
+    display: flex; align-items: center; gap: .6rem;
+    font-family: var(--font-h); font-size: .72rem; font-weight: 700;
+    letter-spacing: 2px; color: var(--electric);
+    cursor: pointer; text-transform: uppercase;
+    background: none; border: none;
+    transition: gap .2s;
+  }
+  .ac-detail-back:hover { gap: .9rem; }
+  .ac-detail-body {
+    max-width: 1100px; margin: 0 auto; padding: 3rem 2rem 6rem;
+  }
+  .ac-detail-hero {
+    display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem;
+    margin-bottom: 3rem; align-items: start;
+  }
+  .ac-detail-img-wrap {
+    border-radius: 18px; overflow: hidden;
+    border: 1px solid rgba(0,229,255,0.15);
+    box-shadow: 0 0 50px rgba(0,229,255,0.12), 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .ac-detail-img { width: 100%; display: block; object-fit: cover; }
+  .ac-detail-info { display: flex; flex-direction: column; gap: 1rem; }
+  .ac-detail-name {
+    font-family: var(--font-h); font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+    font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--white), var(--electric), var(--amber));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    line-height: 1.1; margin-bottom: .3rem;
+  }
+  .ac-detail-sub { font-size: .8rem; letter-spacing: 2px; color: var(--electric); text-transform: uppercase; }
+  .ac-detail-desc { color: var(--muted); font-size: .95rem; line-height: 1.85; }
+  .ac-detail-specs-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: .7rem; margin-top: .5rem;
+  }
+  .ac-detail-spec {
+    padding: .8rem 1rem;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 10px;
+  }
+  .ac-detail-spec-label { font-size: .65rem; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+  .ac-detail-spec-val { font-family: var(--font-h); font-size: .78rem; font-weight: 700; margin-top: .2rem; }
+
+  .ac-when-section { margin-top: 2rem; }
+  .ac-when-title {
+    font-family: var(--font-h); font-size: .82rem; letter-spacing: 3px; color: var(--amber);
+    text-transform: uppercase; margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .5rem;
+  }
+  .ac-when-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 1rem; }
+  .ac-when-card {
+    padding: 1.2rem 1.4rem;
+    border-radius: 14px; border: 1px solid;
+    transition: transform .3s;
+  }
+  .ac-when-card:hover { transform: translateY(-4px); }
+  .ac-when-card.green { border-color: rgba(0,255,136,0.25); background: rgba(0,255,136,0.04); }
+  .ac-when-card.amber { border-color: rgba(255,183,0,0.25); background: rgba(255,183,0,0.04); }
+  .ac-when-card.red   { border-color: rgba(255,45,85,0.25); background: rgba(255,45,85,0.04); }
+  .ac-when-card h4 { font-family: var(--font-h); font-size: .72rem; letter-spacing: 1px; margin-bottom: .5rem; }
+  .ac-when-card.green h4 { color: var(--green); }
+  .ac-when-card.amber h4 { color: var(--amber); }
+  .ac-when-card.red   h4 { color: var(--red); }
+  .ac-when-card p { font-size: .83rem; color: var(--muted); line-height: 1.6; }
+
+  @media (max-width: 768px) {
+    .aircraft-grid { grid-template-columns: 1fr; }
+    .ac-detail-hero { grid-template-columns: 1fr; }
+    .weather-panel.open { width: 260px; }
+    #weatherWidget { top: auto; bottom: 6rem; transform: none; }
+  }
+
+  /* ─── COMPARISON TOOL ────────────────────────── */
+  .compare-selectors {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5rem;
+    align-items: center; margin-bottom: 2.5rem;
+  }
+  .compare-select {
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    color: var(--white);
+    font-family: var(--font-b); font-size: .9rem;
+    width: 100%; outline: none;
+    cursor: pointer;
+    transition: border-color .3s;
+  }
+  .compare-select:focus { border-color: var(--electric); }
+  .compare-vs {
+    font-family: var(--font-h); font-size: 1.4rem; font-weight: 900;
+    color: var(--amber); text-align: center;
+  }
+  .compare-table { width: 100%; border-collapse: collapse; }
+  .compare-table th {
+    font-family: var(--font-h); font-size: .78rem; letter-spacing: 2px;
+    padding: 1rem 1.5rem; text-align: center;
+    border-bottom: 2px solid rgba(0,229,255,0.15);
+  }
+  .compare-table th.label-col { text-align: left; color: var(--muted); font-size: .7rem; }
+  .compare-table th.ac-col { color: var(--white); font-size: .82rem; }
+  .compare-table td {
+    padding: .85rem 1.5rem; font-size: .85rem;
+    border-bottom: 1px solid rgba(0,229,255,0.06);
+    text-align: center;
+  }
+  .compare-table td.label-col { text-align: left; color: var(--muted); font-size: .78rem; letter-spacing: 1px; }
+  .compare-table tr:hover td { background: rgba(0,229,255,0.03); }
+  .cmp-win  { color: var(--green); font-family: var(--font-h); font-size: .78rem; font-weight: 700; }
+  .cmp-lose { color: var(--muted); font-size: .82rem; }
+  .cmp-tie  { color: var(--amber); font-size: .82rem; }
+  .cmp-badge { display:inline-block; padding:.15rem .5rem; border-radius:100px; font-size:.6rem; letter-spacing:1.5px; font-weight:700; margin-left:.4rem; }
+  .cmp-badge.win  { background: rgba(0,255,136,0.12); color: var(--green); }
+  .cmp-badge.lose { background: rgba(255,45,85,0.1); color: var(--red); }
+  .cmp-img-row { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 1rem; margin-bottom: 2rem; }
+  .cmp-img { width:100%; border-radius:12px; object-fit:cover; height:160px; border:1px solid rgba(0,229,255,0.15); }
+
+  /* ─── CALCULATOR SUITE ───────────────────────── */
+  .calc-tabs {
+    display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 2rem;
+  }
+  .calc-tab {
+    padding: .5rem 1.2rem;
+    border-radius: 8px;
+    font-family: var(--font-h); font-size: .68rem; letter-spacing: 1.5px;
+    cursor: pointer; border: 1px solid rgba(0,229,255,0.18);
+    background: rgba(0,229,255,0.04); color: var(--muted);
+    transition: all .25s;
+  }
+  .calc-tab.active, .calc-tab:hover {
+    border-color: var(--electric); color: var(--electric);
+    background: rgba(0,229,255,0.1);
+  }
+  .calc-panel { display: none; }
+  .calc-panel.active { display: block; }
+  .calc-card {
+    background: rgba(5,20,50,0.6);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 18px; padding: 2rem;
+    max-width: 680px; margin: 0 auto;
+  }
+  .calc-title {
+    font-family: var(--font-h); font-size: .9rem; font-weight: 700;
+    letter-spacing: 2px; color: var(--electric); margin-bottom: .4rem;
+  }
+  .calc-desc { font-size: .83rem; color: var(--muted); margin-bottom: 1.8rem; line-height: 1.6; }
+  .calc-input-row {
+    display: flex; gap: .8rem; align-items: flex-end; margin-bottom: 1.2rem; flex-wrap: wrap;
+  }
+  .calc-field { flex: 1; min-width: 140px; }
+  .calc-field label { display:block; font-size:.72rem; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:.4rem; }
+  .calc-input {
+    width: 100%;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 8px; padding: .75rem 1rem;
+    color: var(--white); font-family: var(--font-h); font-size: 1rem;
+    outline: none; transition: border-color .3s;
+  }
+  .calc-input:focus { border-color: var(--electric); }
+  .calc-input-select {
+    width: 100%;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 8px; padding: .75rem 1rem;
+    color: var(--white); font-family: var(--font-b); font-size: .9rem;
+    outline: none; cursor: pointer;
+  }
+  .calc-btn {
+    padding: .78rem 1.8rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--electric), #0060ff);
+    color: #000; font-family: var(--font-h); font-size: .72rem; font-weight: 700;
+    letter-spacing: 1.5px; border: none; cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+    white-space: nowrap;
+  }
+  .calc-btn:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(0,229,255,0.4); }
+  .calc-results {
+    margin-top: 1.5rem;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+    gap: .8rem;
+  }
+  .calc-result-box {
+    padding: 1rem;
+    background: rgba(0,229,255,0.04);
+    border: 1px solid rgba(0,229,255,0.12);
+    border-radius: 10px; text-align: center;
+    transition: border-color .3s;
+  }
+  .calc-result-box:hover { border-color: rgba(0,229,255,0.3); }
+  .calc-result-label { font-size:.68rem; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:.3rem; }
+  .calc-result-value { font-family: var(--font-h); font-size: 1.1rem; font-weight: 700; color: var(--electric); }
+  .calc-warning { color: var(--amber); font-size: .8rem; margin-top: 1rem; padding: .7rem 1rem; background: rgba(255,183,0,0.07); border-radius: 8px; border: 1px solid rgba(255,183,0,0.2); }
+  .calc-danger  { color: var(--red);   font-size: .8rem; margin-top: 1rem; padding: .7rem 1rem; background: rgba(255,45,85,0.07); border-radius: 8px; border: 1px solid rgba(255,45,85,0.2); }
+
+  /* ─── ISS TRACKER ────────────────────────────── */
+  .iss-display {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 3rem;
+    align-items: start;
+  }
+  .iss-globe {
+    background: rgba(5,20,50,0.6);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 18px; overflow: hidden;
+    position: relative;
+  }
+  #issCanvas { width: 100%; display: block; }
+  .iss-data-grid {
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .iss-stat {
+    padding: 1.1rem 1.4rem;
+    background: rgba(5,20,50,0.6);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: border-color .3s;
+  }
+  .iss-stat:hover { border-color: rgba(0,229,255,0.3); }
+  .iss-stat-label { font-size:.75rem; letter-spacing:2px; color:var(--muted); text-transform:uppercase; display:flex;align-items:center;gap:.5rem; }
+  .iss-stat-label i { color:var(--electric); }
+  .iss-stat-value { font-family: var(--font-h); font-size: .85rem; font-weight: 700; color: var(--white); }
+  .iss-live-badge {
+    display: inline-flex; align-items: center; gap: .5rem;
+    background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25);
+    border-radius: 100px; padding: .3rem 1rem;
+    font-size:.7rem; letter-spacing:2px; color:var(--green); font-weight:700;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) {
+    .iss-display { grid-template-columns: 1fr; }
+    .compare-selectors { grid-template-columns: 1fr; }
+    .compare-vs { display: none; }
+  }
+
+  /* ─── KEYFRAMES ───────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(32px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* ─── RESPONSIVE ──────────────────────────────── */
+  @media (max-width: 900px) {
+    .mission-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+  }
+  @media (max-width: 768px) {
+    .cards-grid { grid-template-columns: repeat(2, 1fr); }
+    .stats-inner { grid-template-columns: repeat(2, 1fr); }
+    .nav-links { display: none; }
+    .overlay-body { padding: 2rem 1rem 4rem; }
+    .disc-hero { gap: 1.5rem; flex-direction: column; align-items: center; text-align: center; }
+  }
+  @media (max-width: 480px) {
+    .cards-grid { grid-template-columns: 1fr; }
+    .stats-inner { grid-template-columns: 1fr; }
+    .btn { padding: .8rem 1.5rem; font-size: .7rem; }
+    .countdown-strip { gap: 1rem; }
+    .countdown-box { min-width: 70px; padding: 1rem; }
+    .countdown-num { font-size: 1.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div id="cursor"></div>
+<div id="cursor-trail"></div>
+
+<!-- Three.js canvas -->
+<canvas id="canvas-bg"></canvas>
+
+<!-- ═══════════════════════════════════ NAVBAR ═══ -->
+<nav class="navbar">
+  <a href="#" class="nav-logo">AEROSPACE REALM</a>
+  <ul class="nav-links">
+    <li><a href="#disciplines">Disciplines</a></li>
+    <li><a href="#mission-section">Mission</a></li>
+    <li><a href="#tracking-section">Tracking</a></li>
+    <li><a href="#stats">Stats</a></li>
+    <li><a href="#" onclick="openPage('aircraft'); return false;">Aircraft</a></li>
+    <li><a href="#" onclick="openPage('compare'); return false;">Compare</a></li>
+    <li><a href="#" onclick="openPage('calc'); return false;">Calculators</a></li>
+    <li><a href="#" onclick="openPage('iss'); return false;">ISS Live</a></li>
+  </ul>
+  <div class="nav-status">
+    <div class="nav-dot"></div>
+    SYSTEMS ONLINE
+  </div>
+</nav>
+
+<!-- ═══════════════════════ WEATHER WIDGET ═══════ -->
+<div id="weatherWidget">
+  <div class="weather-panel" id="weatherPanel">
+    <div class="weather-panel-inner">
+      <div class="wp-header"><i class="fa-solid fa-cloud-bolt"></i> LIVE WEATHER</div>
+      <div id="weatherContent">
+        <div class="wp-loading"><i class="fa-solid fa-circle-notch fa-spin"></i>&nbsp; Fetching conditions…</div>
+      </div>
+    </div>
+  </div>
+  <div class="weather-tab" id="weatherTab" onclick="toggleWeather()">
+    <i class="fa-solid fa-cloud-sun" style="writing-mode:horizontal-tb; font-size:.85rem;"></i>
+    WEATHER
+  </div>
+</div>
+
+<main>
+
+  <!-- ═══════════════════════════════════ HERO ═══ -->
+  <section class="hero" id="home">
+    <div class="hero-badge">
+      <i class="fa-solid fa-circle" style="color:var(--green); font-size:.5rem; animation:blink 1s infinite;"></i>
+      LIVE AEROSPACE SYSTEMS
+    </div>
+    <h1>AEROSPACE<br>REALM</h1>
+    <div class="hero-glass">
+      <p>Where <span>Engineering Meets</span> the Infinite Sky</p>
+    </div>
+    <div class="cta-row">
+      <button class="btn btn-primary" id="btnLaunch" onclick="openPage('launch')">
+        <i class="fa-solid fa-rocket"></i> Launch Mission
+      </button>
+      <button class="btn btn-secondary" id="btnTrack" onclick="openPage('tracking')">
+        <i class="fa-solid fa-satellite-dish"></i> Track Systems
+      </button>
+      <button class="btn btn-purple" onclick="openPage('aircraft')">
+        <i class="fa-solid fa-jet-fighter"></i> Aircraft Fleet
+      </button>
+    </div>
+    <div class="scroll-hint">
+      <span>SCROLL</span>
+      <div class="bar"></div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════ DISCIPLINES CARDS ═ -->
+  <div class="section" id="disciplines">
+    <div class="section-label"><i class="fa-solid fa-circle-dot"></i> Core Systems</div>
+    <h2 class="section-title">Aerospace <span>Disciplines</span></h2>
+    <div class="cards-grid">
+
+      <div class="card" onclick="openDiscipline('combat')">
+        <div class="card-icon"><i class="fa-solid fa-jet-fighter"></i></div>
+        <h3>Combat Aviation</h3>
+        <p>Supersonic fighter jets with advanced fly-by-wire systems and stealth geometry engineered for air superiority.</p>
+        <span class="card-tag">Mach 2+</span><br>
+        <span class="card-click-hint"><i class="fa-solid fa-arrow-right"></i> Explore</span>
+      </div>
+
+      <div class="card" onclick="openDiscipline('space')">
+        <div class="card-icon"><i class="fa-solid fa-rocket"></i></div>
+        <h3>Space Launch</h3>
+        <p>Multi-stage propulsion systems delivering payloads to LEO, GEO, and beyond with pinpoint trajectory control.</p>
+        <span class="card-tag">Orbital</span><br>
+        <span class="card-click-hint"><i class="fa-solid fa-arrow-right"></i> Explore</span>
+      </div>
+
+      <div class="card" onclick="openDiscipline('satellite')">
+        <div class="card-icon"><i class="fa-solid fa-satellite"></i></div>
+        <h3>Satellite Systems</h3>
+        <p>Constellation architecture providing global coverage for communications, observation, and navigation.</p>
+        <span class="card-tag">LEO / GEO</span><br>
+        <span class="card-click-hint"><i class="fa-solid fa-arrow-right"></i> Explore</span>
+      </div>
+
+      <div class="card" onclick="openDiscipline('rotorcraft')">
+        <div class="card-icon"><i class="fa-solid fa-helicopter"></i></div>
+        <h3>Rotorcraft</h3>
+        <p>Advanced rotor dynamics enabling vertical takeoff, hover precision, and agile low-altitude operations.</p>
+        <span class="card-tag">VTOL</span><br>
+        <span class="card-click-hint"><i class="fa-solid fa-arrow-right"></i> Explore</span>
+      </div>
+
+      <div class="card" onclick="openDiscipline('uav')">
+        <div class="card-icon"><i class="fa-solid fa-earth-americas"></i></div>
+        <h3>UAV Drones</h3>
+        <p>Autonomous flight systems with AI-powered navigation, real-time telemetry, and swarm coordination.</p>
+        <span class="card-tag">Autonomous</span><br>
+        <span class="card-click-hint"><i class="fa-solid fa-arrow-right"></i> Explore</span>
+      </div>
+
+      <div class="card" onclick="openDiscipline('hypersonics')">
+        <div class="card-icon"><i class="fa-solid fa-gauge-high"></i></div>
+        <h3>Hypersonics</h3>
+        <p>Scramjet-powered vehicles exceeding Mach 5, pushing the boundaries of atmospheric flight physics.</p>
+        <span class="card-tag">Mach 5+</span><br>
+        <span class="card-click-hint"><i class="fa-solid fa-arrow-right"></i> Explore</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═════════════════════════ MISSION SECTION ══ -->
+  <div class="mission-section" id="mission-section">
+    <div class="mission-inner">
+      <div class="mission-text">
+        <p class="section-label" style="justify-content:flex-start; margin-bottom:.5rem;"><i class="fa-solid fa-fire-flame-curved"></i> Mission Control</p>
+        <h2>Engineered for <span>Extreme Conditions</span></h2>
+        <p>Every aerospace system is built to operate at the edge of physics — from sub-zero stratospheric altitudes to the heat of atmospheric re-entry. Precision engineering meets computational intelligence.</p>
+        <div class="spec-row">
+          <i class="fa-solid fa-temperature-half"></i>
+          <span class="spec-label">Operating Range</span>
+          <span class="spec-value">-70°C to +1600°C</span>
+        </div>
+        <div class="spec-row" style="margin-top:.7rem;">
+          <i class="fa-solid fa-arrow-up-right-dots"></i>
+          <span class="spec-label">Max Altitude</span>
+          <span class="spec-value">400 km LEO</span>
+        </div>
+        <div class="spec-row" style="margin-top:.7rem;">
+          <i class="fa-solid fa-bolt"></i>
+          <span class="spec-label">Thrust-to-Weight</span>
+          <span class="spec-value">1.8 : 1</span>
+        </div>
+        <div class="spec-row" style="margin-top:.7rem;">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span class="spec-label">Reliability Index</span>
+          <span class="spec-value">99.97%</span>
+        </div>
+        <br>
+        <button class="btn btn-primary" style="margin-top:.5rem;" onclick="openPage('launch')">
+          <i class="fa-solid fa-rocket"></i> Launch Mission Planner
+        </button>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="tl-icon"><i class="fa-solid fa-diagram-project"></i></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 01</div>
+            <h4>System Architecture</h4>
+            <p>Define mission parameters, payload specifications, and orbital insertion requirements.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-icon"><i class="fa-solid fa-gears"></i></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 02</div>
+            <h4>Propulsion Design</h4>
+            <p>Select and optimize engine configurations for required delta-V and specific impulse targets.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-icon"><i class="fa-solid fa-wind"></i></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 03</div>
+            <h4>CFD & Structural Analysis</h4>
+            <p>Simulate aerodynamic loads, thermal gradients, and material stress envelopes.</p>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="tl-icon"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="tl-content">
+            <div class="tl-phase">Phase 04</div>
+            <h4>Integration & Launch</h4>
+            <p>Systems integration testing, range clearance, and mission execution at T-0.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ STATS ══════════ -->
+  <div class="stats-strip" id="stats">
+    <div class="stats-inner">
+      <div class="stat-box">
+        <div class="stat-num" data-target="40000">0</div>
+        <div class="stat-label">Ft. Cruise Altitude</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" data-target="1500" data-suffix="km/h">0</div>
+        <div class="stat-label">Top Speed Achieved</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" data-target="99" data-suffix="%">0</div>
+        <div class="stat-label">Mission Success Rate</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" data-target="250" data-suffix="+">0</div>
+        <div class="stat-label">Aircraft Analyzed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ TRACKING SECTION ══ -->
+  <div class="tracking-section" id="tracking-section">
+    <div class="section-label" style="margin-bottom:.5rem;"><i class="fa-solid fa-satellite-dish"></i> Live Telemetry</div>
+    <h2 class="section-title" style="margin-bottom:2rem;">Systems <span>Tracking Dashboard</span></h2>
+    <div class="tracking-grid">
+
+      <div class="track-card">
+        <div class="track-header">
+          <div class="track-icon" style="background:rgba(0,229,255,0.1); border-radius:12px; color:var(--electric);">
+            <i class="fa-solid fa-rocket"></i>
+          </div>
+          <div>
+            <div class="track-title">ROCKET SYS-01</div>
+            <div class="track-subtitle"><span class="status-dot" style="background:var(--green); box-shadow:0 0 6px var(--green);"></span>ACTIVE MISSION</div>
+          </div>
+        </div>
+        <div class="track-metrics">
+          <div>
+            <div class="metric-row"><span class="metric-name">Altitude</span><span class="metric-value" style="color:var(--electric);">342 km</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:86%; background:linear-gradient(90deg,var(--electric),var(--cyan));"></div></div>
+          </div>
+          <div>
+            <div class="metric-row"><span class="metric-name">Velocity</span><span class="metric-value" style="color:var(--amber);">7.8 km/s</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:78%; background:linear-gradient(90deg,var(--amber),var(--orange));"></div></div>
+          </div>
+          <div>
+            <div class="metric-row"><span class="metric-name">Fuel Level</span><span class="metric-value" style="color:var(--green);">64%</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:64%; background:linear-gradient(90deg,var(--green),var(--cyan));"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="track-card">
+        <div class="track-header">
+          <div class="track-icon" style="background:rgba(255,183,0,0.1); border-radius:12px; color:var(--amber);">
+            <i class="fa-solid fa-satellite"></i>
+          </div>
+          <div>
+            <div class="track-title">SAT-CONSTELLATION</div>
+            <div class="track-subtitle"><span class="status-dot" style="background:var(--green); box-shadow:0 0 6px var(--green);"></span>48 SATELLITES LIVE</div>
+          </div>
+        </div>
+        <div class="track-metrics">
+          <div>
+            <div class="metric-row"><span class="metric-name">Signal Strength</span><span class="metric-value" style="color:var(--amber);">-72 dBm</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:91%; background:linear-gradient(90deg,var(--amber),var(--orange));"></div></div>
+          </div>
+          <div>
+            <div class="metric-row"><span class="metric-name">Coverage</span><span class="metric-value" style="color:var(--electric);">97.4%</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:97%; background:linear-gradient(90deg,var(--electric),var(--cyan));"></div></div>
+          </div>
+          <div>
+            <div class="metric-row"><span class="metric-name">Uptime</span><span class="metric-value" style="color:var(--green);">99.8%</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:99%; background:linear-gradient(90deg,var(--green),var(--cyan));"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="track-card">
+        <div class="track-header">
+          <div class="track-icon" style="background:rgba(123,47,255,0.1); border-radius:12px; color:var(--violet);">
+            <i class="fa-solid fa-earth-americas"></i>
+          </div>
+          <div>
+            <div class="track-title">UAV SWARM DELTA</div>
+            <div class="track-subtitle"><span class="status-dot" style="background:var(--amber); box-shadow:0 0 6px var(--amber);"></span>PATROL MODE</div>
+          </div>
+        </div>
+        <div class="track-metrics">
+          <div>
+            <div class="metric-row"><span class="metric-name">Units Active</span><span class="metric-value" style="color:var(--violet);">24/24</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:100%; background:linear-gradient(90deg,var(--purple),var(--violet));"></div></div>
+          </div>
+          <div>
+            <div class="metric-row"><span class="metric-name">Battery</span><span class="metric-value" style="color:var(--amber);">78%</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:78%; background:linear-gradient(90deg,var(--amber),var(--orange));"></div></div>
+          </div>
+          <div>
+            <div class="metric-row"><span class="metric-name">Telemetry</span><span class="metric-value" style="color:var(--green);">STABLE</span></div>
+            <div class="metric-bar-wrap"><div class="metric-bar" style="width:95%; background:linear-gradient(90deg,var(--green),var(--cyan));"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div style="text-align:center; margin-top:2.5rem;">
+      <button class="btn btn-secondary" onclick="openPage('tracking')">
+        <i class="fa-solid fa-satellite-dish"></i> Open Full Tracking Suite
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ TECH PILLS ══════════ -->
+  <div class="tech-section">
+    <div class="section-label" style="margin-bottom:1.5rem;"><i class="fa-solid fa-microchip"></i> Tech Stack</div>
+    <div class="tech-strip">
+      <div class="tech-pill"><i class="fa-solid fa-microchip"></i> Avionics</div>
+      <div class="tech-pill"><i class="fa-solid fa-wind"></i> CFD Analysis</div>
+      <div class="tech-pill"><i class="fa-solid fa-atom"></i> Propulsion</div>
+      <div class="tech-pill"><i class="fa-solid fa-tower-broadcast"></i> Radar Systems</div>
+      <div class="tech-pill"><i class="fa-solid fa-shield-halved"></i> Stealth Tech</div>
+      <div class="tech-pill"><i class="fa-solid fa-brain"></i> AI Navigation</div>
+      <div class="tech-pill"><i class="fa-solid fa-fire-flame-curved"></i> Afterburner</div>
+      <div class="tech-pill"><i class="fa-solid fa-signal"></i> Telemetry</div>
+      <div class="tech-pill"><i class="fa-solid fa-code"></i> FBW Systems</div>
+      <div class="tech-pill"><i class="fa-solid fa-magnifying-glass"></i> LiDAR Sensing</div>
+      <div class="tech-pill"><i class="fa-solid fa-satellite-dish"></i> GNC Systems</div>
+      <div class="tech-pill"><i class="fa-solid fa-bolt"></i> Ion Propulsion</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ FOOTER ══════════ -->
+  <footer>
+    <div class="footer-plane">✈</div>
+    <div class="footer-logo">TAFSEER HAIDER</div>
+    <p>Data Scientist &nbsp;·&nbsp; Aerospace Enthusiast &nbsp;·&nbsp; 3D Web Architect</p>
+    <div class="footer-links">
+      <a href="#" title="GitHub"><i class="fa-brands fa-github"></i></a>
+      <a href="#" title="LinkedIn"><i class="fa-brands fa-linkedin"></i></a>
+      <a href="#" title="Twitter"><i class="fa-brands fa-x-twitter"></i></a>
+      <a href="#" title="Email"><i class="fa-solid fa-envelope"></i></a>
+    </div>
+    <p style="font-size:.7rem; color:rgba(111,179,216,0.35); letter-spacing:3px; margin-top:.5rem;">
+      AEROSPACE REALM &nbsp;©&nbsp; 2025
+    </p>
+  </footer>
+
+</main>
+
+
+<!-- ═══════════════ DISCIPLINE PAGES OVERLAY ══════ -->
+<div class="page-overlay" id="disciplinePage">
+  <div class="overlay-header">
+    <div class="overlay-title" id="discOverlayTitle">DISCIPLINE</div>
+    <div class="overlay-close" onclick="closePage('disciplinePage')">
+      <i class="fa-solid fa-xmark"></i>
+    </div>
+  </div>
+  <div class="overlay-body" id="discOverlayBody"></div>
+</div>
+
+<!-- ═══════════════ LAUNCH MISSION PAGE ══════════ -->
+<div class="page-overlay" id="launchPage">
+  <div class="overlay-header">
+    <div class="overlay-title">🚀 MISSION LAUNCH CONTROL</div>
+    <div class="overlay-close" onclick="closePage('launchPage')">
+      <i class="fa-solid fa-xmark"></i>
+    </div>
+  </div>
+  <div class="overlay-body">
+    <div class="launch-hero">
+      <h1>MISSION LAUNCH<br>CONTROL CENTER</h1>
+      <p>Real-time mission planning, staging, and launch sequencing</p>
+
+      <div class="countdown-strip" id="countdownStrip">
+        <div class="countdown-box">
+          <div class="countdown-num" id="cdDays">07</div>
+          <div class="countdown-label">Days</div>
+        </div>
+        <div class="countdown-box">
+          <div class="countdown-num" id="cdHours">14</div>
+          <div class="countdown-label">Hours</div>
+        </div>
+        <div class="countdown-box">
+          <div class="countdown-num" id="cdMins">22</div>
+          <div class="countdown-label">Minutes</div>
+        </div>
+        <div class="countdown-box">
+          <div class="countdown-num" id="cdSecs">00</div>
+          <div class="countdown-label">Seconds</div>
+        </div>
+      </div>
+      <p style="font-size:.72rem; letter-spacing:3px; color:var(--electric); text-transform:uppercase;">T-MINUS TO NEXT LAUNCH WINDOW</p>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-list-check"></i> Mission Phases</div>
+      <div class="phase-grid">
+        <div class="phase-card p1">
+          <div class="phase-num">PHASE 01</div>
+          <h3>Pre-Launch Checks</h3>
+          <p>Fuel loading, avionics initialization, range safety confirmation, and weather window evaluation.</p>
+        </div>
+        <div class="phase-card p2">
+          <div class="phase-num">PHASE 02</div>
+          <h3>Liftoff & Ascent</h3>
+          <p>Full throttle ignition, max-Q aerodynamic stress, and stage separation at predetermined altitude.</p>
+        </div>
+        <div class="phase-card p3">
+          <div class="phase-num">PHASE 03</div>
+          <h3>Orbital Insertion</h3>
+          <p>Hohmann transfer burns, orbit circularization, and payload deployment at target inclination.</p>
+        </div>
+        <div class="phase-card p4">
+          <div class="phase-num">PHASE 04</div>
+          <h3>Mission Complete</h3>
+          <p>Payload commissioning, deorbit planning for expended stages, and telemetry data downlink.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-chart-line"></i> Launch Vehicles</div>
+      <div class="disc-grid">
+        <div class="disc-block">
+          <div class="disc-block-icon"><i class="fa-solid fa-rocket" style="color:var(--electric);"></i></div>
+          <h3>Heavy Lift — AR-7</h3>
+          <p>Two-stage liquid-fueled rocket with 22,000 kg LEO capacity. Recoverable first stage with grid fins and landing legs.</p>
+        </div>
+        <div class="disc-block">
+          <div class="disc-block-icon"><i class="fa-solid fa-arrow-up" style="color:var(--amber);"></i></div>
+          <h3>Medium Lift — AR-3M</h3>
+          <p>Versatile workhorse for GTO and SSO missions. Solid kick stage for final orbit injection.</p>
+        </div>
+        <div class="disc-block">
+          <div class="disc-block-icon"><i class="fa-solid fa-atom" style="color:var(--violet);"></i></div>
+          <h3>Micro Launcher — AR-1X</h3>
+          <p>Dedicated small satellite launcher. Rapid integration with 14-day launch campaign.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-gauge-high"></i> Live Launch Parameters</div>
+      <div class="disc-specs">
+        <div class="spec-chip"><span class="spec-chip-label">Payload Mass</span><span class="spec-chip-value">4,200 kg</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Target Orbit</span><span class="spec-chip-value">LEO 400 km</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Inclination</span><span class="spec-chip-value">51.6°</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Launch Site</span><span class="spec-chip-value">LC-39A</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Propellant</span><span class="spec-chip-value">LOX / RP-1</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Thrust</span><span class="spec-chip-value">7,600 kN</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Delta-V</span><span class="spec-chip-value">9.4 km/s</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Mission ID</span><span class="spec-chip-value">AR-2025-07</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TRACKING PAGE ═════════════ -->
+<div class="page-overlay" id="trackingPage">
+  <div class="overlay-header">
+    <div class="overlay-title">📡 SYSTEM TRACKING SUITE</div>
+    <div class="overlay-close" onclick="closePage('trackingPage')">
+      <i class="fa-solid fa-xmark"></i>
+    </div>
+  </div>
+  <div class="overlay-body">
+    <div class="launch-hero">
+      <h1>SYSTEMS TRACKING<br>& TELEMETRY</h1>
+      <p>Real-time monitoring of all active aerospace assets worldwide</p>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-satellite-dish"></i> PPI Radar — Global Aerospace Tracking</div>
+      <div class="radar-display">
+        <canvas id="radarCanvas" width="320" height="320"></canvas>
+        <div class="radar-label" id="radarStatus">SCANNING · 12 CONTACTS DETECTED</div>
+        <div style="display:flex;gap:1.5rem;margin-top:.8rem;font-size:.7rem;letter-spacing:1.5px;">
+          <span style="color:var(--green);">● Friendly</span>
+          <span style="color:var(--amber);">● Unknown</span>
+          <span style="color:var(--red);">● Hostile</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-server"></i> Active Systems</div>
+      <div class="systems-grid">
+        <div class="system-card">
+          <div class="sys-header">
+            <div class="sys-icon" style="background:rgba(0,229,255,0.1); color:var(--electric);">
+              <i class="fa-solid fa-rocket"></i>
+            </div>
+            <div>
+              <div class="sys-name">LAUNCH VEHICLES</div>
+              <div class="sys-status">● 3 MISSIONS ACTIVE</div>
+            </div>
+          </div>
+          <div class="sys-bars">
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">AR-7 HEAVY</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:86%; background:linear-gradient(90deg,var(--electric),var(--cyan));"></div></div>
+              <span class="sys-bar-val" style="color:var(--electric);">86%</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">AR-3M MED</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:62%; background:linear-gradient(90deg,var(--amber),var(--orange));"></div></div>
+              <span class="sys-bar-val" style="color:var(--amber);">62%</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">AR-1X MICRO</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:94%; background:linear-gradient(90deg,var(--green),var(--cyan));"></div></div>
+              <span class="sys-bar-val" style="color:var(--green);">94%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="system-card">
+          <div class="sys-header">
+            <div class="sys-icon" style="background:rgba(255,183,0,0.1); color:var(--amber);">
+              <i class="fa-solid fa-satellite"></i>
+            </div>
+            <div>
+              <div class="sys-name">SATELLITE FLEET</div>
+              <div class="sys-status">● 48 UNITS ONLINE</div>
+            </div>
+          </div>
+          <div class="sys-bars">
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">COMMS SAT</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:100%; background:linear-gradient(90deg,var(--electric),var(--cyan));"></div></div>
+              <span class="sys-bar-val" style="color:var(--electric);">100%</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">RECON SAT</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:92%; background:linear-gradient(90deg,var(--amber),var(--orange));"></div></div>
+              <span class="sys-bar-val" style="color:var(--amber);">92%</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">NAV SAT</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:98%; background:linear-gradient(90deg,var(--green),var(--cyan));"></div></div>
+              <span class="sys-bar-val" style="color:var(--green);">98%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="system-card">
+          <div class="sys-header">
+            <div class="sys-icon" style="background:rgba(123,47,255,0.1); color:var(--violet);">
+              <i class="fa-solid fa-earth-americas"></i>
+            </div>
+            <div>
+              <div class="sys-name">UAV NETWORK</div>
+              <div class="sys-status">● 24 UNITS PATROL</div>
+            </div>
+          </div>
+          <div class="sys-bars">
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">SWARM A</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:100%; background:linear-gradient(90deg,var(--purple),var(--violet));"></div></div>
+              <span class="sys-bar-val" style="color:var(--violet);">12/12</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">SWARM B</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:100%; background:linear-gradient(90deg,var(--purple),var(--violet));"></div></div>
+              <span class="sys-bar-val" style="color:var(--violet);">12/12</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">BATTERY</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:78%; background:linear-gradient(90deg,var(--amber),var(--orange));"></div></div>
+              <span class="sys-bar-val" style="color:var(--amber);">78%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="system-card">
+          <div class="sys-header">
+            <div class="sys-icon" style="background:rgba(0,255,136,0.1); color:var(--green);">
+              <i class="fa-solid fa-jet-fighter"></i>
+            </div>
+            <div>
+              <div class="sys-name">COMBAT AIR</div>
+              <div class="sys-status">● STANDBY READY</div>
+            </div>
+          </div>
+          <div class="sys-bars">
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">F-35 UNIT</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:100%; background:linear-gradient(90deg,var(--green),var(--cyan));"></div></div>
+              <span class="sys-bar-val" style="color:var(--green);">READY</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">RADAR</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:96%; background:linear-gradient(90deg,var(--electric),var(--cyan));"></div></div>
+              <span class="sys-bar-val" style="color:var(--electric);">96%</span>
+            </div>
+            <div class="sys-bar-row">
+              <span class="sys-bar-label">STEALTH</span>
+              <div class="sys-bar-track"><div class="sys-bar-fill" style="width:99%; background:linear-gradient(90deg,var(--violet),var(--purple));"></div></div>
+              <span class="sys-bar-val" style="color:var(--violet);">ACTIVE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:3rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-gauge-high"></i> Global Telemetry Stats</div>
+      <div class="disc-specs">
+        <div class="spec-chip"><span class="spec-chip-label">Assets Tracked</span><span class="spec-chip-value">76</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Data Rate</span><span class="spec-chip-value">2.4 Gbps</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Ground Stations</span><span class="spec-chip-value">12 Sites</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Uplink Latency</span><span class="spec-chip-value">240 ms</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Network Status</span><span class="spec-chip-value">NOMINAL</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Encryption</span><span class="spec-chip-value">AES-256</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ COMPARISON TOOL ══════════════ -->
+<div class="page-overlay" id="comparePage">
+  <div class="overlay-header">
+    <div class="overlay-title">⚔ AIRCRAFT COMPARISON</div>
+    <div class="overlay-close" onclick="closePage('comparePage')"><i class="fa-solid fa-xmark"></i></div>
+  </div>
+  <div class="overlay-body">
+    <p style="text-align:center;color:var(--muted);margin-bottom:2rem;">Select any two aircraft and compare them spec-by-spec</p>
+    <div class="compare-selectors">
+      <select class="compare-select" id="cmpA" onchange="runComparison()">
+        <option value="">— Select Aircraft A —</option>
+      </select>
+      <div class="compare-vs">VS</div>
+      <select class="compare-select" id="cmpB" onchange="runComparison()">
+        <option value="">— Select Aircraft B —</option>
+      </select>
+    </div>
+    <div id="compareResult"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ CALCULATOR SUITE ══════════════ -->
+<div class="page-overlay" id="calcPage">
+  <div class="overlay-header">
+    <div class="overlay-title">🧮 AEROSPACE CALCULATOR SUITE</div>
+    <div class="overlay-close" onclick="closePage('calcPage')"><i class="fa-solid fa-xmark"></i></div>
+  </div>
+  <div class="overlay-body">
+    <p style="text-align:center;color:var(--muted);margin-bottom:2rem;">Professional aerospace engineering calculators used by the industry</p>
+    <div class="calc-tabs">
+      <button class="calc-tab active" onclick="switchCalc('mach',this)">⚡ Mach Converter</button>
+      <button class="calc-tab" onclick="switchCalc('alt',this)">📐 Altitude Calc</button>
+      <button class="calc-tab" onclick="switchCalc('gforce',this)">💪 G-Force Estimator</button>
+      <button class="calc-tab" onclick="switchCalc('fuel',this)">⛽ Fuel & Range</button>
+      <button class="calc-tab" onclick="switchCalc('thrust',this)">🔥 Thrust-to-Weight</button>
+    </div>
+
+    <!-- MACH CONVERTER -->
+    <div class="calc-panel active" id="calc-mach">
+      <div class="calc-card">
+        <div class="calc-title">MACH SPEED CONVERTER</div>
+        <div class="calc-desc">Convert Mach number to multiple speed units. Speed of sound varies with altitude — select altitude for accurate results.</div>
+        <div class="calc-input-row">
+          <div class="calc-field">
+            <label>Mach Number</label>
+            <input class="calc-input" type="number" id="machIn" placeholder="e.g. 2.25" step="0.01" oninput="calcMach()">
+          </div>
+          <div class="calc-field">
+            <label>Altitude (ft)</label>
+            <select class="calc-input-select" id="machAlt" onchange="calcMach()">
+              <option value="340.3">Sea Level (340.3 m/s)</option>
+              <option value="328.6">10,000 ft (328.6 m/s)</option>
+              <option value="309.6" selected>30,000 ft (309.6 m/s)</option>
+              <option value="295.1">50,000 ft (295.1 m/s)</option>
+              <option value="274.0">80,000 ft (274.0 m/s)</option>
+            </select>
+          </div>
+        </div>
+        <div class="calc-results" id="machResults"></div>
+      </div>
+    </div>
+
+    <!-- ALTITUDE CALC -->
+    <div class="calc-panel" id="calc-alt">
+      <div class="calc-card">
+        <div class="calc-title">DENSITY ALTITUDE CALCULATOR</div>
+        <div class="calc-desc">Density altitude affects aircraft performance. Higher density altitude = reduced lift, thrust, and engine performance.</div>
+        <div class="calc-input-row">
+          <div class="calc-field"><label>Pressure Alt (ft)</label><input class="calc-input" type="number" id="altPA" placeholder="e.g. 8000" oninput="calcAlt()"></div>
+          <div class="calc-field"><label>Temperature (°C)</label><input class="calc-input" type="number" id="altTemp" placeholder="e.g. 25" oninput="calcAlt()"></div>
+          <div class="calc-field"><label>Humidity (%)</label><input class="calc-input" type="number" id="altHum" placeholder="e.g. 50" min="0" max="100" oninput="calcAlt()"></div>
+        </div>
+        <div class="calc-results" id="altResults"></div>
+      </div>
+    </div>
+
+    <!-- G-FORCE -->
+    <div class="calc-panel" id="calc-gforce">
+      <div class="calc-card">
+        <div class="calc-title">G-FORCE / TURN RADIUS ESTIMATOR</div>
+        <div class="calc-desc">Calculate centripetal G-force in a coordinated turn, turn radius, and rate of turn at a given speed and bank angle.</div>
+        <div class="calc-input-row">
+          <div class="calc-field"><label>Airspeed (knots)</label><input class="calc-input" type="number" id="gSpeed" placeholder="e.g. 450" oninput="calcG()"></div>
+          <div class="calc-field"><label>Bank Angle (°)</label><input class="calc-input" type="number" id="gBank" placeholder="e.g. 60" min="1" max="89" oninput="calcG()"></div>
+        </div>
+        <div class="calc-results" id="gResults"></div>
+      </div>
+    </div>
+
+    <!-- FUEL & RANGE -->
+    <div class="calc-panel" id="calc-fuel">
+      <div class="calc-card">
+        <div class="calc-title">FUEL & COMBAT RANGE ESTIMATOR</div>
+        <div class="calc-desc">Estimate maximum range, fuel burn time, and reserve fuel based on aircraft performance data.</div>
+        <div class="calc-input-row">
+          <div class="calc-field"><label>Fuel Capacity (kg)</label><input class="calc-input" type="number" id="fuelCap" placeholder="e.g. 8000" oninput="calcFuel()"></div>
+          <div class="calc-field"><label>Fuel Flow (kg/hr)</label><input class="calc-input" type="number" id="fuelFlow" placeholder="e.g. 1800" oninput="calcFuel()"></div>
+          <div class="calc-field"><label>Cruise Speed (km/h)</label><input class="calc-input" type="number" id="fuelSpeed" placeholder="e.g. 900" oninput="calcFuel()"></div>
+        </div>
+        <div class="calc-results" id="fuelResults"></div>
+      </div>
+    </div>
+
+    <!-- THRUST-TO-WEIGHT -->
+    <div class="calc-panel" id="calc-thrust">
+      <div class="calc-card">
+        <div class="calc-title">THRUST-TO-WEIGHT RATIO</div>
+        <div class="calc-desc">T/W ratio determines climb, acceleration and maneuverability. Above 1.0 means the aircraft can climb vertically.</div>
+        <div class="calc-input-row">
+          <div class="calc-field"><label>Total Thrust (kN)</label><input class="calc-input" type="number" id="thrustVal" placeholder="e.g. 312" oninput="calcTW()"></div>
+          <div class="calc-field"><label>Aircraft Mass (kg)</label><input class="calc-input" type="number" id="twMass" placeholder="e.g. 29000" oninput="calcTW()"></div>
+          <div class="calc-field"><label>Gravity (m/s²)</label><input class="calc-input" type="number" id="twG" value="9.81" oninput="calcTW()"></div>
+        </div>
+        <div class="calc-results" id="twResults"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ ISS TRACKER PAGE ══════════════ -->
+<div class="page-overlay" id="issPage">
+  <div class="overlay-header">
+    <div class="overlay-title">🛸 ISS LIVE TRACKER</div>
+    <div class="overlay-close" onclick="closePage('issPage'); stopISS()"><i class="fa-solid fa-xmark"></i></div>
+  </div>
+  <div class="overlay-body">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div class="iss-live-badge"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;animation:blink 1s infinite;"></span> TRACKING INTERNATIONAL SPACE STATION — LIVE</div>
+      <p style="color:var(--muted);font-size:.88rem;">Position updates every 5 seconds via public telemetry · ISS orbital period: ~92 minutes</p>
+    </div>
+    <div class="iss-display">
+      <div class="iss-globe">
+        <canvas id="issCanvas" width="540" height="280"></canvas>
+      </div>
+      <div class="iss-data-grid">
+        <div class="iss-stat"><span class="iss-stat-label"><i class="fa-solid fa-location-dot"></i> Latitude</span><span class="iss-stat-value" id="issLat">—</span></div>
+        <div class="iss-stat"><span class="iss-stat-label"><i class="fa-solid fa-location-dot"></i> Longitude</span><span class="iss-stat-value" id="issLon">—</span></div>
+        <div class="iss-stat"><span class="iss-stat-label"><i class="fa-solid fa-arrow-up"></i> Altitude</span><span class="iss-stat-value" id="issAlt">~408 km</span></div>
+        <div class="iss-stat"><span class="iss-stat-label"><i class="fa-solid fa-gauge-high"></i> Velocity</span><span class="iss-stat-value">7.66 km/s</span></div>
+        <div class="iss-stat"><span class="iss-stat-label"><i class="fa-solid fa-earth-americas"></i> Orbits Today</span><span class="iss-stat-value" id="issOrbits">~15.5</span></div>
+        <div class="iss-stat"><span class="iss-stat-label"><i class="fa-solid fa-clock"></i> Last Update</span><span class="iss-stat-value" id="issUpdate">—</span></div>
+      </div>
+    </div>
+    <div style="margin-top:2rem;">
+      <div class="disc-section-title"><i class="fa-solid fa-circle-info"></i> ISS Quick Facts</div>
+      <div class="disc-specs">
+        <div class="spec-chip"><span class="spec-chip-label">Mass</span><span class="spec-chip-value">420,000 kg</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Length</span><span class="spec-chip-value">109 m</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Crew</span><span class="spec-chip-value">7 Astronauts</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Orbital Period</span><span class="spec-chip-value">92.68 min</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">Inclination</span><span class="spec-chip-value">51.6°</span></div>
+        <div class="spec-chip"><span class="spec-chip-label">In Orbit Since</span><span class="spec-chip-value">1998</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ AIRCRAFT FLEET PAGE ══════════ -->
+<div class="page-overlay" id="aircraftPage">
+  <div class="overlay-header">
+    <div class="overlay-title">✈ AIRCRAFT FLEET ENCYCLOPEDIA</div>
+    <div class="overlay-close" onclick="closePage('aircraftPage')">
+      <i class="fa-solid fa-xmark"></i>
+    </div>
+  </div>
+  <div class="overlay-body">
+    <div style="text-align:center; margin-bottom:2rem;">
+      <p style="color:var(--muted); font-size:.95rem; letter-spacing:1px;">Browse legendary aircraft & fighter jets — click any to see full specs, capabilities, and when to deploy</p>
+    </div>
+    <div class="aircraft-search-wrap">
+      <input class="aircraft-search" type="text" id="aircraftSearch" placeholder="🔍  Search aircraft by name, country, or type…" oninput="filterAircraft()">
+      <div class="aircraft-filter-row" id="filterRow">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('5th Gen',this)">5th Gen</button>
+        <button class="filter-btn" onclick="setFilter('4th Gen',this)">4th Gen</button>
+        <button class="filter-btn" onclick="setFilter('Bomber',this)">Bomber</button>
+        <button class="filter-btn" onclick="setFilter('Recon',this)">Recon</button>
+        <button class="filter-btn" onclick="setFilter('Hypersonic',this)">Hypersonic</button>
+        <button class="filter-btn" onclick="setFilter('Commercial',this)">Commercial</button>
+      </div>
+    </div>
+    <div class="aircraft-grid" id="aircraftGrid"></div>
+  </div>
+</div>
+
+<!-- Aircraft Detail Overlay -->
+<div class="ac-detail-overlay" id="acDetailOverlay">
+  <div class="ac-detail-header">
+    <button class="ac-detail-back" onclick="closeAcDetail()">
+      <i class="fa-solid fa-arrow-left"></i> Back to Fleet
+    </button>
+    <div class="overlay-close" onclick="closeAcDetail()"><i class="fa-solid fa-xmark"></i></div>
+  </div>
+  <div class="ac-detail-body" id="acDetailBody"></div>
+</div>
+
+<!-- ═══════════════════════════════════ SCRIPTS ═══════════════ -->
+<script>
+
+/* ─── DISCIPLINE DATA ──────────────────────────────────────── */
+const disciplines = {
+  combat: {
+    icon: 'fa-jet-fighter',
+    color: 'var(--electric)',
+    title: 'Combat Aviation',
+    sub: 'Supersonic Air Superiority Systems',
+    desc: 'Combat aviation represents the pinnacle of aeronautical engineering — where stealth, speed, and lethality converge. Modern 5th-generation fighters use fly-by-wire systems, adaptive signal-absorbing coatings, and supercruise-capable turbofan engines to dominate contested airspace.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 2.25' },
+      { label: 'Service Ceiling', value: '65,000 ft' },
+      { label: 'Radar Cross Section', value: '0.001 m²' },
+      { label: 'G-Limit', value: '+9 / -3 G' },
+      { label: 'Thrust-to-Weight', value: '1.07 : 1' },
+      { label: 'Range', value: '2,200 km' },
+    ],
+    blocks: [
+      { icon: 'fa-shield-halved', title: 'Stealth Geometry', desc: 'Faceted airframe design and RAM coatings reduce radar cross-section to near-zero, making detection virtually impossible at operational ranges.' },
+      { icon: 'fa-code', title: 'Fly-By-Wire', desc: 'Quadruplex digital flight control systems replace mechanical linkages, enabling carefree handling and departure resistance at extreme AoA.' },
+      { icon: 'fa-fire-flame-curved', title: 'Supercruise Engine', desc: 'Advanced turbofan with variable geometry nozzle sustains supersonic flight without reheat, reducing IR signature and extending mission radius.' },
+      { icon: 'fa-brain', title: 'Sensor Fusion', desc: 'AESA radar, IRST, EW suite, and datalink fused into a single tactical picture via onboard AI processing for complete situational awareness.' },
+      { icon: 'fa-tower-broadcast', title: 'Electronic Warfare', desc: 'Integrated EW suite delivers jamming, deception, and cyber-attack capabilities, degrading adversary radar and comms networks in real-time.' },
+      { icon: 'fa-gauge-high', title: 'High AoA Maneuver', desc: 'Thrust-vectoring nozzles and advanced aerodynamic controls allow sustained high angle-of-attack maneuvers for close-quarters dogfighting.' },
+    ],
+    features: ['AESA Radar', 'RAM Coating', 'Thrust Vectoring', 'Supercruise', 'Low Observable', 'BVR Missiles', 'EW Suite', 'HMDS Helmet', 'Fuel Cells', 'DAS System'],
+  },
+  space: {
+    icon: 'fa-rocket',
+    color: 'var(--amber)',
+    title: 'Space Launch',
+    sub: 'Orbital Delivery & Propulsion Engineering',
+    desc: 'Space launch vehicles are among humanity\'s most complex machines — converting chemical energy into the velocity required to overcome Earth\'s gravity. From first stage ignition to orbital insertion, every millisecond is precisely choreographed by guidance, navigation, and control algorithms.',
+    specs: [
+      { label: 'LEO Capacity', value: '22,000 kg' },
+      { label: 'GTO Capacity', value: '8,300 kg' },
+      { label: 'Liftoff Thrust', value: '7,600 kN' },
+      { label: 'Specific Impulse', value: '311 s (SL)' },
+      { label: 'Stage Count', value: '2 (+ Kick)' },
+      { label: 'Launch Cadence', value: '24 / year' },
+    ],
+    blocks: [
+      { icon: 'fa-atom', title: 'Propulsion Systems', desc: 'LOX/RP-1 staged combustion engines deliver high specific impulse with turbopump pressures exceeding 250 bar for maximum efficiency.' },
+      { icon: 'fa-route', title: 'Trajectory GNC', desc: 'Six-degree-of-freedom guidance algorithms compute real-time pitch, yaw, and roll corrections from liftoff to MECO with sub-meter accuracy.' },
+      { icon: 'fa-layer-group', title: 'Stage Separation', desc: 'Pyrotechnic separation systems ensure clean interstage disconnect with retro-rockets to avoid re-contact during high dynamic pressure events.' },
+      { icon: 'fa-recycle', title: 'Booster Recovery', desc: 'Deployable grid fins and landing legs enable propulsive vertical landing for first stage recovery and rapid reuse within 24 hours.' },
+      { icon: 'fa-satellite', title: 'Payload Fairing', desc: 'Carbon fiber composite fairing protects payloads through aerodynamic heating and acoustic loads up to 135 dB during ascent.' },
+      { icon: 'fa-signal', title: 'Telemetry & Range', desc: 'S-band and C-band transponders relay vehicle health data at 2.4 Mbps to ground stations across a global tracking network.' },
+    ],
+    features: ['LOX/RP-1 Engines', 'Grid Fins', 'Landing Legs', 'Fairing Recovery', 'Octaweb Engine', 'Stage Sep System', 'GNC Computer', 'Payload Adapter', 'LOX Densification', 'Cold Gas RCS'],
+  },
+  satellite: {
+    icon: 'fa-satellite',
+    color: 'var(--cyan)',
+    title: 'Satellite Systems',
+    sub: 'Constellation Architecture & Global Coverage',
+    desc: 'Modern satellite constellations have transformed global connectivity, Earth observation, and precision navigation. Designing a constellation requires balancing orbital mechanics, ground station geometry, inter-satellite links, and power subsystem budgets to achieve seamless global service.',
+    specs: [
+      { label: 'Orbital Altitude', value: '550 km LEO' },
+      { label: 'Constellation Size', value: '48 Satellites' },
+      { label: 'Coverage', value: '97.4% Global' },
+      { label: 'Revisit Time', value: '< 2 hours' },
+      { label: 'Design Life', value: '7 Years' },
+      { label: 'Data Rate', value: '2.4 Gbps' },
+    ],
+    blocks: [
+      { icon: 'fa-satellite-dish', title: 'Communications Payload', desc: 'Ka-band phased array antennas with digital beamforming serve thousands of simultaneous user terminals with adaptive bandwidth allocation.' },
+      { icon: 'fa-solar-panel', title: 'Power Subsystem', desc: 'Triple-junction GaAs solar arrays with 30% efficiency paired with Li-ion batteries sustain operations through 35-minute eclipse periods.' },
+      { icon: 'fa-compass', title: 'ADCS', desc: 'Star trackers, reaction wheels, and magnetorquers maintain sub-0.01° pointing accuracy for Earth observation and inter-satellite links.' },
+      { icon: 'fa-network-wired', title: 'Inter-Satellite Links', desc: 'Laser optical ISLs at 10 Gbps create a mesh network in orbit, routing traffic globally without terrestrial ground hops.' },
+      { icon: 'fa-fire', title: 'Propulsion', desc: 'Electric Hall-effect thrusters with 1,600s Isp provide orbit raising, station-keeping, and controlled deorbit at end of life.' },
+      { icon: 'fa-thermometer-half', title: 'Thermal Control', desc: 'Multi-layer insulation, heat pipes, and deployable radiators maintain all components within -40°C to +85°C operational range.' },
+    ],
+    features: ['Ka-Band Phased Array', 'Electric Propulsion', 'Star Trackers', 'Optical ISL', 'GaAs Solar Panels', 'Li-ion Battery', 'Reaction Wheels', 'MLI Blankets', 'Heat Pipes', 'Collision Avoidance'],
+  },
+  rotorcraft: {
+    icon: 'fa-helicopter',
+    color: 'var(--orange)',
+    title: 'Rotorcraft',
+    sub: 'VTOL Dynamics & Rotor Aerodynamics',
+    desc: 'Rotorcraft engineering combines complex aeroelastic rotor dynamics with precise flight control system design. From utility helicopters to tiltrotors and eVTOL air taxis, rotorcraft uniquely bridge the gap between vertical takeoff and efficient forward flight.',
+    specs: [
+      { label: 'Hover Ceiling', value: '15,000 ft ISA' },
+      { label: 'Max Speed', value: '310 km/h' },
+      { label: 'Disc Loading', value: '45 kg/m²' },
+      { label: 'Rotor Tip Speed', value: '220 m/s' },
+      { label: 'Endurance', value: '4.2 hours' },
+      { label: 'Payload', value: '2,400 kg' },
+    ],
+    blocks: [
+      { icon: 'fa-rotate', title: 'Rotor Dynamics', desc: 'Hingeless composite rotors with active blade twist control optimize lift distribution across the full flight envelope from hover to high-speed cruise.' },
+      { icon: 'fa-code', title: 'AFCS', desc: 'Automatic Flight Control System provides 4-axis stability augmentation, hover-hold, and carefree handling across Category A performance requirements.' },
+      { icon: 'fa-wind', title: 'Ground Effect', desc: 'IGE hover exploits compressed air cushion below the rotor disc, reducing induced power by up to 30% during takeoff and landing phases.' },
+      { icon: 'fa-bolt', title: 'Hybrid Propulsion', desc: 'Turbine-electric hybrid architecture improves fuel burn by 20% in cruise while enabling full-electric hover for silent low-altitude operations.' },
+      { icon: 'fa-headset', title: 'Noise Reduction', desc: 'Blade-vortex interaction noise suppressed via active rotor control and optimized tip geometry to meet urban air mobility acoustic standards.' },
+      { icon: 'fa-shield-halved', title: 'Crashworthiness', desc: 'Energy-absorbing fuselage structure, stroking seats, and retractable landing gear engineered to 95th percentile occupant survivability standards.' },
+    ],
+    features: ['Composite Rotor', 'Hingeless Hub', 'FBW Controls', 'Anti-Torque Tail', 'Health Monitoring', 'NVG Compatible', 'Terrain Following', 'FADEC Engine', 'Crash Attenuators', 'De-Ice System'],
+  },
+  uav: {
+    icon: 'fa-earth-americas',
+    color: 'var(--green)',
+    title: 'UAV Drones',
+    sub: 'Autonomous Systems & Swarm Intelligence',
+    desc: 'Unmanned aerial vehicles span the full performance spectrum from micro-drones to long-endurance stratospheric platforms. Modern UAV design integrates AI-powered autonomy, encrypted datalinks, and modular payload architectures to execute missions in denied or degraded environments.',
+    specs: [
+      { label: 'Endurance', value: '36 hours' },
+      { label: 'Operating Altitude', value: '50,000 ft' },
+      { label: 'Payload Capacity', value: '450 kg' },
+      { label: 'Datalink Range', value: '2,000 km' },
+      { label: 'Swarm Size', value: 'Up to 100' },
+      { label: 'Autonomy Level', value: 'SAE Level 4' },
+    ],
+    blocks: [
+      { icon: 'fa-brain', title: 'AI Navigation', desc: 'Deep reinforcement learning enables real-time path planning, obstacle avoidance, and target recognition without GPS in fully contested environments.' },
+      { icon: 'fa-network-wired', title: 'Swarm Coordination', desc: 'Distributed consensus algorithms allow hundreds of UAVs to self-organize, share sensor data, and execute coordinated missions autonomously.' },
+      { icon: 'fa-signal', title: 'Encrypted Datalink', desc: 'FHSS/DSSS encrypted C2 link with ECCM capabilities maintains control under heavy electronic warfare and jamming environments.' },
+      { icon: 'fa-camera', title: 'Sensor Suite', desc: 'EO/IR, SAR, SIGINT, and CBRN payloads swapped in modular quick-change pods with mission-ready checkout in under 60 minutes.' },
+      { icon: 'fa-solar-panel', title: 'Power Systems', desc: 'Solar-cell wing skin extends HALE endurance beyond 7 days for persistent surveillance without requiring recovery or refueling.' },
+      { icon: 'fa-shield', title: 'Low Observable', desc: 'Composites, exhaust shielding, and geometry optimization reduce RCS to fighter-comparable levels for penetrating defended airspace.' },
+    ],
+    features: ['AI Autonomy', 'GPS Denied Nav', 'Swarm Protocol', 'EO/IR Payload', 'SAR Radar', 'SATCOM Link', 'Solar Skin', 'Modular Bay', 'Stealth Coating', 'ECCM Datalink'],
+  },
+  hypersonics: {
+    icon: 'fa-gauge-high',
+    color: 'var(--red)',
+    title: 'Hypersonics',
+    sub: 'Mach 5+ Atmospheric Flight Engineering',
+    desc: 'Hypersonic vehicles operate in a regime where conventional aerodynamic assumptions break down and atmospheric chemistry actively influences vehicle performance. Mastering Mach 5+ flight demands solutions to air-breathing propulsion, thermal protection, and plasma blackout communications — simultaneously.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 8.5' },
+      { label: 'Altitude Band', value: '25–40 km' },
+      { label: 'Surface Temp', value: '1,600°C' },
+      { label: 'Engine Type', value: 'Dual-Mode Scramjet' },
+      { label: 'Range', value: '3,000 km' },
+      { label: 'Strike Time', value: '< 20 min' },
+    ],
+    blocks: [
+      { icon: 'fa-fire-flame-curved', title: 'Scramjet Propulsion', desc: 'Supersonic combustion ramjet ignites hydrogen fuel in airflow traveling at 2 km/s inside the combustion chamber with sub-millisecond timing.' },
+      { icon: 'fa-temperature-high', title: 'Thermal Protection', desc: 'Ultra-high-temperature ceramics (UHTCs), C/C-SiC composites, and active transpiration cooling maintain structural integrity at 1,600°C.' },
+      { icon: 'fa-wave-square', title: 'Plasma Management', desc: 'Electron beam injection and magnetic window techniques maintain datalink connectivity during hypersonic plasma blackout.' },
+      { icon: 'fa-chart-line', title: 'Aeroelasticity', desc: 'Coupled fluid-structure interaction simulations predict thermally-induced deformation of airframe and inlet geometry across the flight envelope.' },
+      { icon: 'fa-compass', title: 'Guidance & Control', desc: 'Predictive guidance algorithms account for atmospheric density variations and aerodynamic coupling to maintain trajectory accuracy within meters at range.' },
+      { icon: 'fa-globe', title: 'Global Strike', desc: 'Maneuvering reentry vehicle capability defeats existing missile defense systems through unpredictable trajectory shaping at Mach 8+.' },
+    ],
+    features: ['Scramjet Engine', 'UHTC Skin', 'Active Cooling', 'MHD Control', 'GPS Denied', 'Boost-Glide', 'Waverider Body', 'Plasma Blackout Fix', 'H2 Fuel System', 'High AoA Control'],
+  },
+};
+
+/* ─── OPEN DISCIPLINE MODAL ────────────────────────────────── */
+function openDiscipline(key) {
+  const d = disciplines[key];
+  if (!d) return;
+  document.getElementById('discOverlayTitle').textContent = d.title.toUpperCase();
+  document.getElementById('discOverlayBody').innerHTML = `
+    <div class="disc-hero">
+      <div class="disc-icon-wrap" style="color:${d.color}; border-color:${d.color}30; background:${d.color}08; box-shadow:0 0 40px ${d.color}25;">
+        <i class="fa-solid ${d.icon}"></i>
+      </div>
+      <div class="disc-intro">
+        <div class="sub">${d.sub}</div>
+        <h1>${d.title}</h1>
+        <p>${d.desc}</p>
+      </div>
+    </div>
+
+    <div class="disc-section-title" style="color:${d.color};"><i class="fa-solid fa-gauge-high"></i> Key Specifications</div>
+    <div class="disc-specs">
+      ${d.specs.map(s => `
+        <div class="spec-chip">
+          <span class="spec-chip-label">${s.label}</span>
+          <span class="spec-chip-value" style="color:${d.color};">${s.value}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="disc-section-title" style="color:${d.color};"><i class="fa-solid fa-cube"></i> Core Technologies</div>
+    <div class="disc-grid">
+      ${d.blocks.map(b => `
+        <div class="disc-block">
+          <div class="disc-block-icon" style="color:${d.color};"><i class="fa-solid ${b.icon}"></i></div>
+          <h3>${b.title}</h3>
+          <p>${b.desc}</p>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="disc-section-title" style="color:${d.color};"><i class="fa-solid fa-tags"></i> Features & Capabilities</div>
+    <div class="disc-features">
+      ${d.features.map(f => `
+        <span class="feature-tag" style="border-color:${d.color}20; color:var(--white);">
+          <i class="fa-solid fa-check" style="color:${d.color};"></i> ${f}
+        </span>
+      `).join('')}
+    </div>
+  `;
+  openPage('discipline');
+}
+
+/* ─── OPEN PAGE ────────────────────────────────────────────── */
+function openPage(type) {
+  let id;
+  if (type === 'discipline') id = 'disciplinePage';
+  else if (type === 'launch')    id = 'launchPage';
+  else if (type === 'tracking')  id = 'trackingPage';
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add('open');
+  el.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+
+function closePage(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* Close with Escape */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['disciplinePage','launchPage','trackingPage'].forEach(id => closePage(id));
+  }
+});
+
+/* ─── CURSOR ───────────────────────────────────────────────── */
+const cursor = document.getElementById('cursor');
+const trail  = document.getElementById('cursor-trail');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top  = e.clientY + 'px';
+  setTimeout(() => {
+    trail.style.left = e.clientX + 'px';
+    trail.style.top  = e.clientY + 'px';
+  }, 60);
+});
+document.querySelectorAll('a,button,.card,.stat-box,.tech-pill,.btn,.overlay-close,.track-card,.system-card,.disc-block,.phase-card,.timeline-item,.spec-row')
+  .forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('big'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('big'));
+  });
+
+/* ─── THREE.JS SCENE ───────────────────────────────────────── */
+(function () {
+  const canvas = document.getElementById('canvas-bg');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x030d1a, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x030d1a, 0.01);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 0, 20);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x001133, 2.5));
+  const pA = new THREE.PointLight(0x00e5ff, 5, 45);
+  pA.position.set(6, 6, 6); scene.add(pA);
+  const pB = new THREE.PointLight(0xff5c00, 3.5, 35);
+  pB.position.set(-6, -4, 4); scene.add(pB);
+  const pC = new THREE.PointLight(0xffb700, 2.5, 30);
+  pC.position.set(0, 9, -6); scene.add(pC);
+  const pD = new THREE.PointLight(0x7b2fff, 2, 25);
+  pD.position.set(-8, 2, 3); scene.add(pD);
+
+  // Central torus knot
+  const tkGeo = new THREE.TorusKnotGeometry(3.2, 0.75, 200, 28, 2, 3);
+  const tkMat = new THREE.MeshPhongMaterial({
+    color: 0x002244, emissive: 0x001133,
+    specular: 0x00e5ff, shininess: 140,
+    transparent: true, opacity: 0.88
+  });
+  const tk = new THREE.Mesh(tkGeo, tkMat);
+  scene.add(tk);
+
+  const wireMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, wireframe: true, transparent: true, opacity: 0.1 });
+  scene.add(new THREE.Mesh(tkGeo, wireMat));
+
+  // Orbiting rings
+  [
+    { r: 7,   tube: 0.045, col: 0x00e5ff, op: 0.38, rx: Math.PI / 2, ry: 0 },
+    { r: 8.8, tube: 0.03,  col: 0xffb700, op: 0.22, rx: Math.PI / 3, ry: Math.PI / 5 },
+    { r: 10.5,tube: 0.02,  col: 0xff5c00, op: 0.16, rx: Math.PI / 6, ry: Math.PI / 3 },
+    { r: 12,  tube: 0.015, col: 0x7b2fff, op: 0.12, rx: Math.PI / 4, ry: Math.PI / 6 },
+  ].forEach(d => {
+    const m = new THREE.Mesh(
+      new THREE.TorusGeometry(d.r, d.tube, 4, 130),
+      new THREE.MeshBasicMaterial({ color: d.col, transparent: true, opacity: d.op })
+    );
+    m.rotation.set(d.rx, d.ry, 0);
+    scene.add(m);
+  });
+
+  // Starfield
+  const starVerts = [];
+  for (let i = 0; i < 2500; i++) {
+    starVerts.push(
+      (Math.random() - 0.5) * 300,
+      (Math.random() - 0.5) * 300,
+      (Math.random() - 0.5) * 300
+    );
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xaaddff, size: 0.35, transparent: true, opacity: 0.7 })));
+
+  // Mouse parallax
+  let mx = 0, my = 0;
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX / window.innerWidth - 0.5) * 2;
+    my = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  function animate(t) {
+    requestAnimationFrame(animate);
+    const s = t * 0.001;
+    tk.rotation.x = s * 0.28;
+    tk.rotation.y = s * 0.38;
+    camera.position.x += (mx * 1.5 - camera.position.x) * 0.04;
+    camera.position.y += (-my * 1.2 - camera.position.y) * 0.04;
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+  }
+  animate(0);
+
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+})();
+
+/* ─── INTERSECTION OBSERVER — scroll animations ──────────── */
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry, i) => {
+    if (entry.isIntersecting) {
+      setTimeout(() => {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+        entry.target.style.transition = 'opacity .6s ease, transform .6s ease';
+      }, i * 80);
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.card, .stat-box, .timeline-item, .track-card').forEach(el => {
+  el.style.transform = 'translateY(28px)';
+  observer.observe(el);
+});
+
+/* ─── COUNTER ANIMATION ────────────────────────────────────── */
+function animateCounter(el) {
+  const target = +el.dataset.target;
+  const suffix = el.dataset.suffix || '';
+  const duration = 1800;
+  const start = performance.now();
+  function update(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 4);
+    el.textContent = Math.round(eased * target).toLocaleString() + suffix;
+    if (t < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+const statsObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.stat-num').forEach(animateCounter);
+      statsObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+statsObs.observe(document.querySelector('.stats-strip'));
+
+/* ─── LAUNCH COUNTDOWN ────────────────────────────────────── */
+const launchTarget = new Date();
+launchTarget.setDate(launchTarget.getDate() + 7);
+launchTarget.setHours(launchTarget.getHours() + 14);
+launchTarget.setMinutes(launchTarget.getMinutes() + 22);
+
+function updateCountdown() {
+  const diff = launchTarget - new Date();
+  if (diff <= 0) return;
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  const fmt = n => String(n).padStart(2, '0');
+  document.getElementById('cdDays').textContent  = fmt(d);
+  document.getElementById('cdHours').textContent = fmt(h);
+  document.getElementById('cdMins').textContent  = fmt(m);
+  document.getElementById('cdSecs').textContent  = fmt(s);
+}
+setInterval(updateCountdown, 1000);
+updateCountdown();
+
+/* ─── UPDATE openPage to handle aircraft ───────────────────── */
+const _origOpenPage = openPage;
+openPage = function(type) {
+  if (type === 'aircraft') {
+    const el = document.getElementById('aircraftPage');
+    el.classList.add('open');
+    el.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+    renderAircraftGrid('all', '');
+    return;
+  }
+  _origOpenPage(type);
+};
+
+/* Close with Escape — extend to cover aircraft */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeAcDetail();
+    closePage('aircraftPage');
+  }
+}, true);
+
+/* ═══════════════════════════════════════════════════════════════
+   AIRCRAFT DATA
+═══════════════════════════════════════════════════════════════ */
+const aircraftData = [
+  {
+    id: 'f22',
+    name: 'F-22 Raptor',
+    fullname: 'Lockheed Martin / Boeing F-22A Raptor',
+    country: '🇺🇸 USA',
+    gen: '5th Gen',
+    type: 'Air Superiority',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/F-22_Raptor_edit1_%28cropped%29.jpg',
+    genColor: '#00e5ff',
+    desc: 'The F-22 Raptor is the world\'s premier air superiority fighter, combining stealth, supercruise, supermaneuverability, and advanced sensor fusion into a single platform. It entered service with the USAF in 2005 and remains unmatched in beyond-visual-range combat.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 2.25 (1,500 mph)' },
+      { label: 'Service Ceiling', value: '65,000 ft (19,812 m)' },
+      { label: 'Range', value: '2,960 km (combat)' },
+      { label: 'Thrust (each)', value: '2× 156 kN (afterburner)' },
+      { label: 'Radar Cross Section', value: '~0.0001 m²' },
+      { label: 'G-Limit', value: '+9 G / −3 G' },
+      { label: 'Crew', value: '1 Pilot' },
+      { label: 'First Flight', value: 'September 7, 1997' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Contested airspace, BVR combat, CAP missions, enemy air defense suppression. Ideal at 40,000–65,000 ft in clear or overcast skies. Any weather.' },
+      ok:   { title: '⚠️ Marginal', text: 'Close air support (CAS) missions where low-altitude loiter is required — not optimized but capable. Heavy icing conditions require careful flight planning.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Maritime patrol, cargo, or long-range reconnaissance requiring extended low-altitude cruise. Export-restricted — allies cannot operate it.' },
+    },
+    features: ['Supercruise (Mach 1.8+ no AB)', 'LO Stealth (RAM coating)', 'AESA AN/APG-77 Radar', 'Thrust Vectoring', 'Advanced EW Suite', 'AIM-120 AMRAAM', 'Internal Weapons Bays', 'Helmet-Mounted Display'],
+  },
+  {
+    id: 'f35',
+    name: 'F-35 Lightning II',
+    fullname: 'Lockheed Martin F-35 Lightning II',
+    country: '🇺🇸 USA / Multi-Nation',
+    gen: '5th Gen',
+    type: 'Multirole Strike',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/8/85/F-35_first_flight.jpg',
+    genColor: '#00e5ff',
+    desc: 'The F-35 is the world\'s most widely operated 5th-generation multirole fighter, available in three variants: conventional (A), carrier-based (C), and STOVL (B). It emphasizes sensor fusion, stealth, and network-centric warfare over raw performance.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 1.6 (1,228 mph)' },
+      { label: 'Service Ceiling', value: '50,000 ft (15,240 m)' },
+      { label: 'Range', value: '2,220 km (internal fuel)' },
+      { label: 'Thrust', value: '1× 191 kN (F135)' },
+      { label: 'Radar Cross Section', value: '~0.001 m²' },
+      { label: 'G-Limit', value: '+9 G' },
+      { label: 'Crew', value: '1 Pilot' },
+      { label: 'In Service', value: '2015 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Day/night all-weather strike missions, SEAD/DEAD, ISR penetration, CAS with sensor fusion. Excels in contested airspace where stealth and data-sharing matter most.' },
+      ok:   { title: '⚠️ Marginal', text: 'Dedicated air superiority engagements — less maneuverable than F-22. High-sortie-rate requirements stress logistics. STOVL variant (B) limited in payload.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Long-range unrefueled strikes without tanker support. Extended supersonic dash missions (supercruise-incapable). Operations in countries without allied ground support infrastructure.' },
+    },
+    features: ['AN/APG-81 AESA Radar', 'DAS 360° EO', 'STOVL (B-variant)', 'Sensor Fusion', 'Internal 25mm Cannon', 'JSF Helmet DAS', 'LO Stealth', 'Multirole Payload'],
+  },
+  {
+    id: 'sr71',
+    name: 'SR-71 Blackbird',
+    fullname: 'Lockheed SR-71 Blackbird',
+    country: '🇺🇸 USA',
+    gen: 'Recon',
+    type: 'Strategic Reconnaissance',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/5/5d/SR-71_Blackbird.jpg',
+    genColor: '#a855f7',
+    desc: 'The SR-71 Blackbird remains the fastest air-breathing jet aircraft ever to enter operational service, capable of sustained Mach 3.2+ flight. It was the primary USAF strategic reconnaissance platform from 1966–1998, designed to outrun any missile fired at it.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 3.3+ (3,540 km/h)' },
+      { label: 'Service Ceiling', value: '85,000 ft (25,900 m)' },
+      { label: 'Range', value: '5,400 km (unrefueled)' },
+      { label: 'Engines', value: '2× Pratt & Whitney J58' },
+      { label: 'Fuselage Temp', value: 'Up to 316°C at cruise' },
+      { label: 'G-Limit', value: '+2.5 G (structural)' },
+      { label: 'Crew', value: '2 (Pilot + RSO)' },
+      { label: 'First Flight', value: 'December 22, 1964' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Deep-penetration strategic reconnaissance in denied airspace. Any weather at cruise altitude (above weather). Missions requiring absolute impunity from interception — nothing could catch it.' },
+      ok:   { title: '⚠️ Marginal', text: 'Low-altitude reconnaissance — not designed for it and causes structural/thermal stress outside optimal envelope. Short-range tactical ISR where slower aircraft suffice.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Combat strike, weapon delivery, or close air support roles — no weapons capability. Cost and logistical intensity made frequent sorties impractical. Retired due to satellite intelligence.' },
+    },
+    features: ['Mach 3.3+ Cruise', 'Titanium Airframe (92%)', 'RAM Leading Edges', 'JP-7 Fuel System', 'Ejection Capsules', 'ELINT / SIGINT Suite', 'Camera Arrays', 'Air-Refueled Capable'],
+  },
+  {
+    id: 'b2',
+    name: 'B-2 Spirit',
+    fullname: 'Northrop Grumman B-2 Spirit Stealth Bomber',
+    country: '🇺🇸 USA',
+    gen: 'Bomber',
+    type: 'Strategic Stealth Bomber',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/3/3c/B-2_Spirit_original.jpg',
+    genColor: '#ff5c00',
+    desc: 'The B-2 Spirit is the world\'s only operational stealth strategic bomber, capable of delivering nuclear and conventional weapons anywhere on earth within hours. Its flying wing design and broadband stealth coatings make it nearly invisible to radar at any aspect angle.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 0.95 (1,010 km/h)' },
+      { label: 'Service Ceiling', value: '50,000 ft (15,200 m)' },
+      { label: 'Range', value: '11,000+ km (unrefueled)' },
+      { label: 'Payload', value: '18,000 kg (40,000 lb)' },
+      { label: 'Radar Cross Section', value: '~0.0001 m²' },
+      { label: 'Crew', value: '2 Pilots' },
+      { label: 'Unit Cost', value: ~'$2.1 billion' },
+      { label: 'In Service', value: '1997 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Strategic deep-strike into heavily defended airspace, day/night/all-weather. Nuclear or large conventional payload delivery. Missions where absolute stealth is non-negotiable.' },
+      ok:   { title: '⚠️ Marginal', text: 'Sustained high-sortie operations — each mission requires significant maintenance (LO coating care). Rough airfield operations. High-humidity tropical basing without climate-controlled shelters.' },
+      bad:  { title: '🚫 Not Suitable', text: 'CAS, tactical air superiority, or time-critical fleeting targets. Only 20 aircraft exist — attrition risk is politically unacceptable. Not suited for permissive airspace missions where cheaper aircraft suffice.' },
+    },
+    features: ['Flying Wing Design', 'Broadband LO Stealth', 'GPS-guided MOP', 'Nuclear Capable', 'Global Strike', 'Air Refueling', 'Rotary Launcher', 'Terrain Following'],
+  },
+  {
+    id: 'eurofighter',
+    name: 'Eurofighter Typhoon',
+    fullname: 'Eurofighter GmbH EF2000 Typhoon',
+    country: '🇬🇧🇩🇪🇮🇹🇪🇸 Europe',
+    gen: '4th Gen',
+    type: 'Multirole Fighter',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/f/f5/Eurofighter_-_RIAT_2008.jpg',
+    genColor: '#ffb700',
+    desc: 'The Eurofighter Typhoon is a highly agile swing-role combat aircraft combining excellent BVR capability with extreme close-in dogfighting performance. Its canard-delta layout with full fly-by-wire provides exceptional instantaneous turn rates and departure resistance.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 2.0 (2,125 km/h)' },
+      { label: 'Service Ceiling', value: '55,000 ft (16,765 m)' },
+      { label: 'Range', value: '2,900 km' },
+      { label: 'Thrust', value: '2× 90 kN (EJ200)' },
+      { label: 'G-Limit', value: '+9 G / −3.5 G' },
+      { label: 'Crew', value: '1 or 2' },
+      { label: 'Weapons', value: '13 Hardpoints' },
+      { label: 'In Service', value: '2003 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Air policing, QRA, BVR intercepts, swing-role strike. Outstanding in high-altitude combat above 30,000 ft. All-weather day/night capability with excellent radar.' },
+      ok:   { title: '⚠️ Marginal', text: 'Dedicated ground attack (A-10 or Tornado preferable), very low-altitude nap-of-the-earth ingress, maritime strike without Marte/Sea Eagle integration.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Operations in airspace requiring LO/stealth penetration. STOVL or carrier ops (not designed for). Nations outside of Eurofighter partner support chain.' },
+    },
+    features: ['Canard Delta Wing', 'CAPTOR-E AESA Radar', 'Full FBW', 'Supercruise Capable', 'IRST PIRATE', 'DASS EW Suite', 'Meteor BVR Missile', 'Voice Command System'],
+  },
+  {
+    id: 'rafale',
+    name: 'Dassault Rafale',
+    fullname: 'Dassault Aviation Rafale F4',
+    country: '🇫🇷 France',
+    gen: '4th Gen',
+    type: 'Omnirole Fighter',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/5/5e/Rafale_F3-R_-_RIAT_2018_%2843615883284%29.jpg',
+    genColor: '#ffb700',
+    desc: 'The Rafale is France\'s only combat aircraft, an omnirole fighter designed to handle every mission from nuclear deterrence to carrier landings, CAS, and BVR combat without compromise. Its RBE2 AESA radar and SPECTRA EW suite are world-class.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 1.8 (1,912 km/h)' },
+      { label: 'Service Ceiling', value: '50,000 ft (15,240 m)' },
+      { label: 'Range', value: '3,700 km (with tanks)' },
+      { label: 'Thrust', value: '2× 75 kN (M88)' },
+      { label: 'G-Limit', value: '+9 G / −3.2 G' },
+      { label: 'Crew', value: '1 or 2' },
+      { label: 'Hardpoints', value: '14 External' },
+      { label: 'In Service', value: '2001 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'True omnirole: nuclear strike (ASMP-A), carrier ops, CAS, BVR intercept, electronic combat, reconnaissance. Ideal for nations needing one aircraft for everything.' },
+      ok:   { title: '⚠️ Marginal', text: 'Extreme stealth penetration missions (4th gen RCS, though SPECTRA helps). Long ferry range without tanker. Arctic extreme cold without additional ground support equipment.' },
+      bad:  { title: '🚫 Not Suitable', text: 'STOVL operations. Large payload bomb truck missions (limited compared to F-15E). Operations without French logistical support chain outside of licensed partners.' },
+    },
+    features: ['RBE2-AA AESA Radar', 'SPECTRA EW Suite', 'Carrier Capable (M)', 'Nuclear ASMP-A', 'MICA Missiles', 'Front Sector Optronics', 'Omnirole Design', 'Voice/Helmet Commands'],
+  },
+  {
+    id: 'su57',
+    name: 'Su-57 Felon',
+    fullname: 'Sukhoi Su-57 (NATO: Felon)',
+    country: '🇷🇺 Russia',
+    gen: '5th Gen',
+    type: 'Air Superiority / Multirole',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/b/b2/Su-57_at_MAKS_2019_%28cropped%29.jpg',
+    genColor: '#00e5ff',
+    desc: 'Russia\'s first 5th-generation stealth fighter, the Su-57 combines supermaneuverability from thrust-vectoring engines with a large payload capacity and advanced avionics. It blends stealth features with traditional Russian emphasis on kinematic performance.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 2.0 (2,132 km/h)' },
+      { label: 'Service Ceiling', value: '66,000 ft (20,000 m)' },
+      { label: 'Range', value: '3,500 km (internal)' },
+      { label: 'Thrust', value: '2× 180 kN (AL-51F1)' },
+      { label: 'Radar Cross Section', value: '~0.1 m² (est.)' },
+      { label: 'G-Limit', value: '+9 G' },
+      { label: 'Crew', value: '1 Pilot' },
+      { label: 'In Service', value: '2020 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Air superiority in contested airspace, supercruise penetration, BVR engagements with R-37M missiles. Excellent kinematic performance for WVR turning fights.' },
+      ok:   { title: '⚠️ Marginal', text: 'Deep penetration of heavily layered Western IADS where full-spectrum stealth (not just shaping) is critical. Current production numbers remain very limited.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Operations without Russian-standard logistics. Carrier operations — land-based only. Stealth performance against modern AESA radars considered less effective than Western 5th-gen.' },
+    },
+    features: ['3D Thrust Vectoring', 'N036 Byelka AESA', 'Internal Weapons Bays', 'Supercruise', 'L-band wingtip radar', 'R-37M Hypersonic AAM', 'LO Shaping', 'AI Wingman Ready'],
+  },
+  {
+    id: 'f16',
+    name: 'F-16 Fighting Falcon',
+    fullname: 'General Dynamics / Lockheed Martin F-16',
+    country: '🇺🇸 USA / 25+ Nations',
+    gen: '4th Gen',
+    type: 'Multirole Light Fighter',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/c/c9/F-16_June_2008.jpg',
+    genColor: '#ffb700',
+    desc: 'The F-16 Fighting Falcon is the world\'s most numerous supersonic combat aircraft, operated by 25+ nations. Designed as a lightweight day fighter, it evolved into a highly capable multirole platform. Its fly-by-wire system and reclined seat reduce G-induced pilot blackout.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 2.05 (2,173 km/h)' },
+      { label: 'Service Ceiling', value: '50,000 ft (15,240 m)' },
+      { label: 'Range', value: '4,220 km (ferry)' },
+      { label: 'Thrust', value: '1× 131 kN (F110)' },
+      { label: 'G-Limit', value: '+9 G / −3 G' },
+      { label: 'Crew', value: '1 (or 2 in D/F models)' },
+      { label: 'Hardpoints', value: '11 External' },
+      { label: 'In Service', value: '1978 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'CAS, air defense, strike, SEAD, maritime patrol, day/night all-weather with LANTIRN/Sniper pod. Ideal for smaller air forces needing affordable multirole capability. Proven combat record across 40+ years.' },
+      ok:   { title: '⚠️ Marginal', text: 'Dedicated air superiority against modern 5th-gen threats without upgrade. Single-engine operations over long water crossings. Operations without tanker support for deep strike.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Stealth/LO penetration roles. Operations in heavily saturated IADS without SEAD escort. Strategic strike without ALCM (no internal bay). Carrier operations.' },
+    },
+    features: ['Bubble Canopy 360°', 'FBW Flight Controls', 'AESA (Block 70/72)', 'JDAM / Paveway', 'AIM-120 AMRAAM', '30° Reclined Seat', 'HUD + HMCS', 'Conformal Fuel Tanks'],
+  },
+  {
+    id: 'mig29',
+    name: 'MiG-29 Fulcrum',
+    fullname: 'Mikoyan MiG-29 (NATO: Fulcrum)',
+    country: '🇷🇺 Russia / 25+ Nations',
+    gen: '4th Gen',
+    type: 'Air Superiority Fighter',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/e/ee/MiG-29_Czestochowa_2009.jpg',
+    genColor: '#ffb700',
+    desc: 'The MiG-29 Fulcrum is a highly agile short-range air superiority fighter renowned for its raw performance at low-to-medium altitudes. Its IRST/helmet-sight/R-73 combination made it one of the most dangerous WVR opponents in the world during the Cold War era.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 2.25 (2,400 km/h)' },
+      { label: 'Service Ceiling', value: '59,060 ft (18,000 m)' },
+      { label: 'Range', value: '1,500 km (with drop tanks)' },
+      { label: 'Thrust', value: '2× 86.3 kN (RD-33)' },
+      { label: 'G-Limit', value: '+9 G' },
+      { label: 'Crew', value: '1 (or 2 in UB variant)' },
+      { label: 'Hardpoints', value: '7 External' },
+      { label: 'In Service', value: '1983 – Present' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'WVR (within visual range) dogfighting, forward base defense, escort missions, low-altitude high-speed intercept. IRST + helmet sight + R-73 is deadly in turning fights in clear to moderate weather.' },
+      ok:   { title: '⚠️ Marginal', text: 'Long-range BVR combat (limited fuel, shorter radar range than F-15). All-weather precision strike in latest models. Extended overwater operations (short unrefueled range).' },
+      bad:  { title: '🚫 Not Suitable', text: 'Strategic strike, SEAD, long-range interdiction. Original variants lack modern EW suite for contested airspace penetration. High maintenance burden limits sortie sustainability.' },
+    },
+    features: ['IRST OLS-M Sensor', 'Helmet Cueing', 'R-73 Archer Missile', 'HOTAS Controls', 'High AoA Capability', 'LOX System', 'Forward Intake Guard', 'Thrust-to-Weight 1.09'],
+  },
+  {
+    id: 'b21',
+    name: 'B-21 Raider',
+    fullname: 'Northrop Grumman B-21 Raider',
+    country: '🇺🇸 USA',
+    gen: 'Bomber',
+    type: 'Next-Gen Stealth Bomber',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/9/97/B-21_Raider_bomber_unveiled.jpg',
+    genColor: '#ff5c00',
+    desc: 'The B-21 Raider is the USAF\'s newest 6th-generation stealth bomber, introduced in 2023 to replace the B-1B and eventually the B-2. Built from the ground up with open-architecture systems and advanced low-observable technology, it is designed for the peer-competitor threat environment of 2040+.',
+    specs: [
+      { label: 'Max Speed', value: 'Classified (subsonic est.)' },
+      { label: 'Range', value: 'Intercontinental (est.)' },
+      { label: 'Payload', value: 'Classified (nuclear capable)' },
+      { label: 'Stealth Gen', value: '6th Generation LO' },
+      { label: 'Crew', value: '2 Pilots (optionally unmanned)' },
+      { label: 'First Flight', value: 'November 10, 2023' },
+      { label: 'In Service', value: 'Est. 2027+' },
+      { label: 'Planned Fleet', value: '100+ aircraft' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Penetrating highly sophisticated integrated air defense systems (IADS) of peer adversaries (China, Russia). Nuclear and conventional global strike. Day/night/all-weather unrestricted.' },
+      ok:   { title: '⚠️ Marginal', text: 'Missions requiring high sortie rate or rapid turnaround — low-observable aircraft demand careful post-flight maintenance. Budget constraints limit total fleet.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Permissive airspace missions where B-52 or conventional aircraft suffice. CAS or time-sensitive flexible targeting. Not yet combat-proven as of 2025.' },
+    },
+    features: ['6th Gen LO Stealth', 'Open Architecture Avionics', 'Nuclear Dual-Capable', 'Optionally Unmanned', 'Advanced EW Suite', 'Massive Ordnance Capacity', 'Flying Wing Design', 'Cloud-Connected Ops'],
+  },
+  {
+    id: 'concorde',
+    name: 'Concorde',
+    fullname: 'Aérospatiale / BAC Concorde',
+    country: '🇫🇷🇬🇧 France / UK',
+    gen: 'Commercial',
+    type: 'Supersonic Airliner',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/6/60/Concorde_at_Barbados_%28Airline_Series%29.jpg',
+    genColor: '#00ffd5',
+    desc: 'Concorde was the world\'s first and most successful supersonic commercial airliner, operating transatlantic routes at Mach 2.04 from 1976–2003. It flew London or Paris to New York in under 3.5 hours at 60,000 ft, above most weather. A pinnacle of collaborative aerospace engineering.',
+    specs: [
+      { label: 'Cruise Speed', value: 'Mach 2.04 (2,179 km/h)' },
+      { label: 'Service Ceiling', value: '60,000 ft (18,300 m)' },
+      { label: 'Range', value: '7,250 km' },
+      { label: 'Passengers', value: '100 (First Class only)' },
+      { label: 'Engines', value: '4× Olympus 593 afterburning' },
+      { label: 'Nose Droop', value: '12.5° for landing' },
+      { label: 'In Service', value: '1976 – 2003' },
+      { label: 'Total Built', value: '20 aircraft' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Transatlantic premium passenger service requiring minimum travel time. Cruise at Mach 2 above most weather and turbulence. Business/diplomatic travel where time has extreme value.' },
+      ok:   { title: '⚠️ Marginal', text: 'Transpacific routes (range limited without stops). Operations from airports with strict noise ordinances (loud afterburner at takeoff). Routes without premium pricing to offset fuel costs.' },
+      bad:  { title: '🚫 Not Suitable', text: 'High passenger volume / high cargo routes. Short-haul operations (economics are catastrophic). Overland supersonic cruise (banned in most countries due to sonic boom).' },
+    },
+    features: ['Mach 2.04 Cruise', 'Ogival Delta Wing', 'Afterburning Turbojets', 'Nose Droop Mechanism', 'Above-Weather Cruise', 'Kinetic Heating Expansion', 'Fly-By-Wire (partial)', 'Transatlantic Record Holder'],
+  },
+  {
+    id: 'x15',
+    name: 'X-15',
+    fullname: 'North American Aviation X-15',
+    country: '🇺🇸 USA',
+    gen: 'Hypersonic',
+    type: 'Hypersonic Research Aircraft',
+    img: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/X-15_in_flight.jpg',
+    genColor: '#ff2d55',
+    desc: 'The X-15 holds the world speed record for crewed aircraft at Mach 6.72 and altitude records exceeding 100 km (qualifying pilots as astronauts). Powered by an XLR99 liquid-propellant rocket engine, it provided essential data for the Space Shuttle and hypersonic research programs.',
+    specs: [
+      { label: 'Max Speed', value: 'Mach 6.72 (7,274 km/h)' },
+      { label: 'Max Altitude', value: '108.0 km (354,200 ft)' },
+      { label: 'Engine', value: 'Thiokol XLR99 Rocket' },
+      { label: 'Thrust', value: '262 kN' },
+      { label: 'Fuselage Temp', value: 'Up to 1,200°C' },
+      { label: 'Burn Time', value: '~85 seconds' },
+      { label: 'Crew', value: '1 Pilot' },
+      { label: 'Program', value: '1959 – 1968' },
+    ],
+    suitable: {
+      good: { title: '✅ Best Conditions', text: 'Hypersonic aerodynamic and thermodynamic research, boundary layer data collection, reaction control system testing at high altitude. Drop-launched from B-52 above 45,000 ft in clear skies.' },
+      ok:   { title: '⚠️ Marginal', text: 'Low-altitude subsonic operations — X-15 was designed exclusively for high-altitude high-speed research. Recovery depends on dry lake bed availability.' },
+      bad:  { title: '🚫 Not Suitable', text: 'Any operational combat or transport role — pure experimental aircraft. Operations without dedicated mothership B-52 and telemetry ground station network. Weather below minimums at Rogers Dry Lake.' },
+    },
+    features: ['World Speed Record', 'Space Altitude Record', 'XLR99 Rocket Engine', 'Reaction Control Jets', 'Ablative Nose', 'Data Telemetry', 'Wedge Tail', 'Adaptive Control'],
+  },
+];
+
+let currentFilter = 'all';
+
+function renderAircraftGrid(filter, searchQuery) {
+  currentFilter = filter;
+  const grid = document.getElementById('aircraftGrid');
+  const q = (searchQuery || '').toLowerCase();
+  const filtered = aircraftData.filter(a => {
+    const matchFilter = filter === 'all' || a.gen === filter || a.type.includes(filter);
+    const matchSearch = !q || a.name.toLowerCase().includes(q) || a.country.toLowerCase().includes(q) || a.type.toLowerCase().includes(q) || a.fullname.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:4rem;color:var(--muted);font-size:.9rem;">No aircraft match your search.</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map((a, i) => `
+    <div class="ac-card" onclick="openAcDetail('${a.id}')" style="animation: fadeUp .5s ${i * 0.06}s both;">
+      <div class="ac-img-wrap">
+        <img class="ac-img" src="${a.img}" alt="${a.name}" loading="lazy" referrerpolicy="no-referrer" onerror="tryAcImgFallback(this, this.nextElementSibling, '${a.img}')">
+        <div style="display:none; position:absolute; inset:0; background:linear-gradient(135deg, rgba(0,30,60,0.95), rgba(5,5,20,0.98)); align-items:center; justify-content:center; flex-direction:column; gap:.5rem; color:rgba(0,229,255,0.5); font-family:var(--font-h); font-size:.7rem; letter-spacing:2px; text-align:center; padding:1rem;"><i class='fa-solid fa-jet-fighter' style='font-size:2rem; opacity:0.4;'></i>${a.name}<span style='font-size:.6rem; opacity:0.6;'>IMAGE CLASSIFIED</span></div>
+        <div class="ac-img-overlay"></div>
+        <span class="ac-gen-badge" style="background:${a.genColor}20; border:1px solid ${a.genColor}40; color:${a.genColor};">${a.gen}</span>
+        <span class="ac-type-badge">${a.type}</span>
+      </div>
+      <div class="ac-body">
+        <div class="ac-country">${a.country}</div>
+        <div class="ac-name">${a.name}</div>
+        <div class="ac-fullname">${a.fullname}</div>
+        <div class="ac-specs-mini">
+          <div class="ac-spec-mini">
+            <div class="ac-spec-mini-label">Max Speed</div>
+            <div class="ac-spec-mini-val" style="color:${a.genColor};">${a.specs[0].value.split('(')[0].trim()}</div>
+          </div>
+          <div class="ac-spec-mini">
+            <div class="ac-spec-mini-label">Ceiling</div>
+            <div class="ac-spec-mini-val" style="color:${a.genColor};">${a.specs[1].value.split('(')[0].trim()}</div>
+          </div>
+          <div class="ac-spec-mini">
+            <div class="ac-spec-mini-label">Role</div>
+            <div class="ac-spec-mini-val" style="color:var(--muted);">${a.type}</div>
+          </div>
+          <div class="ac-spec-mini">
+            <div class="ac-spec-mini-label">Origin</div>
+            <div class="ac-spec-mini-val" style="color:var(--muted);">${a.country.split(' ').slice(1).join(' ')}</div>
+          </div>
+        </div>
+        <div class="ac-suitable green" style="border-color:rgba(0,255,136,0.25); background:rgba(0,255,136,0.04);">
+          <i class="fa-solid fa-clock-rotate-left" style="color:var(--green);"></i>
+          <span style="color:var(--muted); font-size:.72rem;">${a.suitable.good.text.substring(0, 90)}…</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setFilter(filter, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = filter;
+  filterAircraft();
+}
+
+function filterAircraft() {
+  const q = document.getElementById('aircraftSearch')?.value || '';
+  renderAircraftGrid(currentFilter, q);
+}
+
+function openAcDetail(id) {
+  const a = aircraftData.find(x => x.id === id);
+  if (!a) return;
+  const body = document.getElementById('acDetailBody');
+  body.innerHTML = `
+    <div class="ac-detail-hero">
+      <div class="ac-detail-img-wrap">
+        <img class="ac-detail-img" src="${a.img}" alt="${a.name}" referrerpolicy="no-referrer" onerror="tryAcImgFallback(this, document.getElementById('acDetailImgFallback'), '${a.img}')">
+        <div id="acDetailImgFallback" style="display:none; align-items:center; justify-content:center; flex-direction:column; gap:1rem; background:rgba(0,20,50,0.8); border-radius:16px; min-height:260px; color:rgba(0,229,255,0.5); font-family:var(--font-h); font-size:.8rem; letter-spacing:2px; text-align:center; padding:2rem;"><i class='fa-solid fa-jet-fighter' style='font-size:3rem; opacity:0.3;'></i>${a.name}<span style='font-size:.65rem; opacity:0.5;'>HD IMAGE CLASSIFIED</span></div>
+      </div>
+      <div class="ac-detail-info">
+        <div style="font-size:.72rem; letter-spacing:3px; color:${a.genColor}; text-transform:uppercase;">${a.gen} &nbsp;·&nbsp; ${a.type}</div>
+        <div style="font-size:.78rem; color:var(--muted); margin-bottom:.2rem;">${a.country}</div>
+        <div class="ac-detail-name">${a.name}</div>
+        <div class="ac-detail-sub">${a.fullname}</div>
+        <p class="ac-detail-desc">${a.desc}</p>
+        <div class="ac-detail-specs-grid">
+          ${a.specs.map(s => `
+            <div class="ac-detail-spec">
+              <div class="ac-detail-spec-label">${s.label}</div>
+              <div class="ac-detail-spec-val" style="color:${a.genColor};">${s.value}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:2rem;">
+      <div class="disc-section-title" style="color:var(--electric);"><i class="fa-solid fa-tags"></i> Capabilities & Features</div>
+      <div class="disc-features">
+        ${a.features.map(f => `<span class="feature-tag"><i class="fa-solid fa-check" style="color:${a.genColor};"></i> ${f}</span>`).join('')}
+      </div>
+    </div>
+
+    <div class="ac-when-section">
+      <div class="ac-when-title"><i class="fa-solid fa-calendar-check"></i> When to Deploy — Operational Suitability</div>
+      <div class="ac-when-grid">
+        <div class="ac-when-card green">
+          <h4>${a.suitable.good.title}</h4>
+          <p>${a.suitable.good.text}</p>
+        </div>
+        <div class="ac-when-card amber">
+          <h4>${a.suitable.ok.title}</h4>
+          <p>${a.suitable.ok.text}</p>
+        </div>
+        <div class="ac-when-card red">
+          <h4>${a.suitable.bad.title}</h4>
+          <p>${a.suitable.bad.text}</p>
+        </div>
+      </div>
+    </div>
+  `;
+  const overlay = document.getElementById('acDetailOverlay');
+  overlay.classList.add('open');
+  overlay.scrollTop = 0;
+}
+
+function closeAcDetail() {
+  document.getElementById('acDetailOverlay').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE WEATHER (Open-Meteo — no API key required)
+═══════════════════════════════════════════════════════════════ */
+const WMO_CODES = {
+  0:'Clear Sky',1:'Mainly Clear',2:'Partly Cloudy',3:'Overcast',
+  45:'Foggy',48:'Icy Fog',51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',
+  61:'Light Rain',63:'Rain',65:'Heavy Rain',71:'Light Snow',73:'Snow',75:'Heavy Snow',
+  77:'Snow Grains',80:'Light Showers',81:'Showers',82:'Heavy Showers',
+  85:'Snow Showers',86:'Heavy Snow Showers',95:'Thunderstorm',96:'Thunderstorm+Hail',99:'Severe Thunderstorm'
+};
+const WMO_ICONS = {
+  0:'☀️',1:'🌤',2:'⛅',3:'☁️',45:'🌫',48:'🌫',51:'🌦',53:'🌧',55:'🌧',
+  61:'🌦',63:'🌧',65:'🌧',71:'🌨',73:'❄️',75:'❄️',77:'🌨',
+  80:'🌦',81:'🌧',82:'⛈',85:'🌨',86:'❄️',95:'⛈',96:'⛈',99:'🌩'
+};
+
+function windDir(deg) {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg/45)%8];
+}
+
+function flightSuitability(wind, vis, wmo) {
+  const badCodes = [55,65,75,82,85,86,95,96,99];
+  const okCodes  = [45,48,51,53,61,63,71,73,77,80,81];
+  if (badCodes.includes(wmo) || wind > 50 || vis < 1000) {
+    return { cls: 'wp-suit-bad',  label: '🚫 NOT SUITABLE FOR FLIGHT' };
+  } else if (okCodes.includes(wmo) || wind > 25 || vis < 5000) {
+    return { cls: 'wp-suit-ok',   label: '⚠️ MARGINAL CONDITIONS' };
+  }
+  return { cls: 'wp-suit-good', label: '✅ GOOD FLIGHT CONDITIONS' };
+}
+
+async function fetchWeather(lat, lon, locationName) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,windspeed_10m,winddirection_10m,weathercode,visibility,surface_pressure,relativehumidity_2m&wind_speed_unit=kmh`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const c = data.current;
+    const wmo = c.weathercode;
+    const icon = WMO_ICONS[wmo] || '🌍';
+    const cond = WMO_CODES[wmo] || 'Unknown';
+    const vis  = c.visibility ?? 10000;
+    const suit = flightSuitability(c.windspeed_10m, vis, wmo);
+    const now  = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+    document.getElementById('weatherContent').innerHTML = `
+      <div class="wp-location"><i class="fa-solid fa-location-dot"></i> ${locationName}</div>
+      <div class="wp-temp">${Math.round(c.temperature_2m)}°C</div>
+      <div class="wp-condition">${icon} ${cond}</div>
+      <div class="wp-divider"></div>
+      <div class="wp-row">
+        <span class="wp-row-label"><i class="fa-solid fa-wind"></i> Wind</span>
+        <span class="wp-row-value">${c.windspeed_10m} km/h ${windDir(c.winddirection_10m)}</span>
+      </div>
+      <div class="wp-row">
+        <span class="wp-row-label"><i class="fa-solid fa-eye"></i> Visibility</span>
+        <span class="wp-row-value">${vis >= 10000 ? '10+ km' : (vis/1000).toFixed(1)+' km'}</span>
+      </div>
+      <div class="wp-row">
+        <span class="wp-row-label"><i class="fa-solid fa-gauge"></i> Pressure</span>
+        <span class="wp-row-value">${Math.round(c.surface_pressure)} hPa</span>
+      </div>
+      <div class="wp-row">
+        <span class="wp-row-label"><i class="fa-solid fa-droplet"></i> Humidity</span>
+        <span class="wp-row-value">${c.relativehumidity_2m}%</span>
+      </div>
+      <div class="wp-divider"></div>
+      <div class="wp-suitability ${suit.cls}">${suit.label}</div>
+      <div class="wp-update">Updated ${now} · Auto-refreshes every 10 min</div>
+    `;
+  } catch(e) {
+    document.getElementById('weatherContent').innerHTML =
+      '<div class="wp-loading" style="color:var(--red);">⚠ Weather unavailable</div>';
+  }
+}
+
+function initWeather() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      pos => fetchWeather(pos.coords.latitude, pos.coords.longitude, 'Your Location'),
+      ()  => fetchWeather(51.5074, -0.1278, 'London, UK') // fallback
+    );
+  } else {
+    fetchWeather(51.5074, -0.1278, 'London, UK');
+  }
+  setInterval(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => fetchWeather(pos.coords.latitude, pos.coords.longitude, 'Your Location'),
+        ()  => fetchWeather(51.5074, -0.1278, 'London, UK')
+      );
+    }
+  }, 600000);
+}
+
+let weatherOpen = false;
+function toggleWeather() {
+  weatherOpen = !weatherOpen;
+  document.getElementById('weatherPanel').classList.toggle('open', weatherOpen);
+  if (weatherOpen) initWeather();
+}
+
+initWeather();
+
+/* ═══════════════════════════════════════════════════════════════
+   AIRCRAFT IMAGE MULTI-FALLBACK LOADER
+   Tries: 1) Direct Wikimedia  2) Special:FilePath  3) Placeholder
+═══════════════════════════════════════════════════════════════ */
+function tryAcImgFallback(img, placeholder, originalSrc) {
+  const tried = parseInt(img.dataset.fallback || '0');
+  img.dataset.fallback = String(tried + 1);
+
+  if (tried === 0) {
+    // Attempt 2: Wikimedia Special:FilePath (works without referer)
+    const m = originalSrc.match(/\/([^\/]+\.jpe?g)$/i);
+    if (m) {
+      img.src = 'https://commons.wikimedia.org/wiki/Special:FilePath/' + m[1];
+      return;
+    }
+  }
+  if (tried === 1) {
+    // Attempt 3: Wikipedia image redirect via en.wikipedia.org
+    const m = originalSrc.match(/\/([^\/]+\.jpe?g)$/i);
+    if (m) {
+      img.src = 'https://en.wikipedia.org/wiki/Special:Redirect/file/' + m[1];
+      return;
+    }
+  }
+  // All failed → show styled placeholder
+  img.style.display = 'none';
+  if (placeholder) placeholder.style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CLICK RIPPLE + FIRE SPARK EFFECT
+═══════════════════════════════════════════════════════════════ */
+document.addEventListener('click', function(e) {
+  spawnClickEffect(e.clientX, e.clientY);
+});
+
+function spawnClickEffect(x, y) {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `position:fixed;left:${x}px;top:${y}px;pointer-events:none;z-index:999999;`;
+  document.body.appendChild(wrap);
+
+  // Two expanding rings
+  spawnRing(wrap, 0,   '#00ff88', 70,  0.55);
+  spawnRing(wrap, 90,  '#00e5ff', 44,  0.4);
+
+  // Fire + spark particles
+  const colors = ['#ff6a00','#ffb700','#ff3300','#00ff88','#00e5ff','#fff200'];
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const angle  = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+    const dist   = 35 + Math.random() * 50;
+    const dur    = 420 + Math.random() * 260;
+    const delay  = Math.random() * 60;
+    const color  = colors[Math.floor(Math.random() * colors.length)];
+    const w      = 2 + Math.random() * 3;
+    const h      = 7 + Math.random() * 10;
+    spawnSpark(wrap, angle, dist, dur, delay, color, w, h);
+  }
+
+  // Central flash dot
+  const dot = document.createElement('div');
+  dot.style.cssText = `position:absolute;width:10px;height:10px;border-radius:50%;
+    background:#00ff88;box-shadow:0 0 14px #00ff88,0 0 28px #00ff88;
+    transform:translate(-50%,-50%);transition:opacity .25s,transform .25s;`;
+  wrap.appendChild(dot);
+  requestAnimationFrame(() => {
+    dot.style.transform = 'translate(-50%,-50%) scale(2.5)';
+    dot.style.opacity = '0';
+  });
+
+  setTimeout(() => wrap.remove(), 900);
+}
+
+function spawnRing(parent, delayMs, color, maxR, dur) {
+  const ring = document.createElement('div');
+  ring.style.cssText = `position:absolute;border-radius:50%;
+    border:2px solid ${color};box-shadow:0 0 10px ${color}55;
+    width:8px;height:8px;transform:translate(-50%,-50%) scale(0);opacity:1;`;
+  parent.appendChild(ring);
+
+  let t0 = null;
+  const scale = maxR / 4;
+  function step(ts) {
+    if (!t0) t0 = ts;
+    const p = Math.min((ts - t0 - delayMs) / (dur * 1000), 1);
+    if (p < 0) { requestAnimationFrame(step); return; }
+    ring.style.transform = `translate(-50%,-50%) scale(${p * scale})`;
+    ring.style.opacity   = String(1 - p);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function spawnSpark(parent, angle, dist, dur, delayMs, color, w, h) {
+  const spark = document.createElement('div');
+  spark.style.cssText = `position:absolute;width:${w}px;height:${h}px;
+    border-radius:${w}px;background:linear-gradient(to top, transparent, ${color});
+    box-shadow:0 0 4px ${color}88;transform:translate(-50%,-50%);opacity:0;`;
+  parent.appendChild(spark);
+
+  let t0 = null;
+  const vx = Math.cos(angle), vy = Math.sin(angle);
+  function step(ts) {
+    if (!t0) t0 = ts;
+    const p = Math.min((ts - t0 - delayMs) / dur, 1);
+    if (p < 0) { requestAnimationFrame(step); return; }
+    const d = p * dist;
+    const alpha = p < 0.2 ? p / 0.2 : 1 - ((p - 0.2) / 0.8);
+    const scaleY = 1 - p * 0.6;
+    spark.style.transform = `translate(calc(-50% + ${vx * d}px), calc(-50% + ${vy * d}px)) rotate(${angle + Math.PI / 2}rad) scaleY(${scaleY})`;
+    spark.style.opacity = String(Math.max(0, alpha));
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OPEN PAGE — extended to handle all new pages
+═══════════════════════════════════════════════════════════════ */
+const _origOpen2 = openPage;
+openPage = function(type) {
+  if (type === 'compare') {
+    populateCompareSelects();
+    const el = document.getElementById('comparePage');
+    el.classList.add('open'); el.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  } else if (type === 'calc') {
+    const el = document.getElementById('calcPage');
+    el.classList.add('open'); el.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+  } else if (type === 'iss') {
+    const el = document.getElementById('issPage');
+    el.classList.add('open'); el.scrollTop = 0;
+    document.body.style.overflow = 'hidden';
+    startISS();
+  } else if (type === 'tracking') {
+    _origOpen2(type);
+    setTimeout(initRadarCanvas, 200);
+  } else {
+    _origOpen2(type);
+  }
+};
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['comparePage','calcPage','issPage'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('open');
+    });
+    stopISS();
+    document.body.style.overflow = '';
+  }
+}, true);
+
+/* ═══════════════════════════════════════════════════════════════
+   PPI RADAR CANVAS
+═══════════════════════════════════════════════════════════════ */
+function initRadarCanvas() {
+  const canvas = document.getElementById('radarCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2, R = W / 2 - 4;
+
+  const contacts = [
+    { angle: 0.62, dist: 0.55, type: 'friendly', label: 'F-22' },
+    { angle: 2.10, dist: 0.72, type: 'friendly', label: 'SAT-01' },
+    { angle: 1.05, dist: 0.38, type: 'unknown',  label: 'UNK-A' },
+    { angle: 3.80, dist: 0.60, type: 'hostile',  label: 'BOG-1' },
+    { angle: 4.50, dist: 0.45, type: 'friendly', label: 'UAV-7' },
+    { angle: 5.20, dist: 0.80, type: 'unknown',  label: 'UNK-B' },
+    { angle: 0.20, dist: 0.90, type: 'friendly', label: 'B-21' },
+    { angle: 2.80, dist: 0.30, type: 'hostile',  label: 'BOG-2' },
+  ];
+
+  const blipAlpha = contacts.map(() => 0);
+  let sweepAngle = 0;
+  let frame = 0;
+  const SWEEP_SPEED = 0.048;
+  const trailLength = Math.PI * 0.75;
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Background
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.fillStyle = '#010a08';
+    ctx.fill();
+
+    // Trail glow
+    const trailStart = sweepAngle - trailLength;
+    const grad = ctx.createConicalGradient ? null : null;
+    for (let i = 0; i < 40; i++) {
+      const a = trailStart + (trailLength / 40) * i;
+      const alpha = (i / 40) * 0.18;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, R, a, a + trailLength / 40);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(0,255,100,${alpha})`;
+      ctx.fill();
+    }
+
+    // Concentric rings
+    [0.25, 0.5, 0.75, 1.0].forEach((f, i) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * f, 0, Math.PI * 2);
+      ctx.strokeStyle = i === 3 ? 'rgba(0,229,255,0.35)' : 'rgba(0,200,80,0.15)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (i < 3) {
+        ctx.fillStyle = 'rgba(0,255,136,0.3)';
+        ctx.font = '9px monospace';
+        ctx.fillText(`${(i+1)*25}%`, cx + R * f + 3, cy - 3);
+      }
+    });
+
+    // Cross hairs
+    ['rgba(0,255,100,0.12)', 'rgba(0,255,100,0.12)'].forEach((c, i) => {
+      ctx.beginPath();
+      if (i === 0) { ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R); }
+      else         { ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); }
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+    // Diagonal hairs
+    [45, 135].forEach(deg => {
+      const rad = deg * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(cx - Math.cos(rad) * R, cy - Math.sin(rad) * R);
+      ctx.lineTo(cx + Math.cos(rad) * R, cy + Math.sin(rad) * R);
+      ctx.strokeStyle = 'rgba(0,255,100,0.07)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // Sweep line
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(sweepAngle);
+    const sweepGrad = ctx.createLinearGradient(0, 0, R, 0);
+    sweepGrad.addColorStop(0, 'rgba(0,255,100,0.9)');
+    sweepGrad.addColorStop(0.6, 'rgba(0,255,100,0.4)');
+    sweepGrad.addColorStop(1, 'rgba(0,255,100,0)');
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(R, 0);
+    ctx.strokeStyle = sweepGrad;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.restore();
+
+    // Contacts (blips)
+    contacts.forEach((c, i) => {
+      const angleDiff = ((sweepAngle - c.angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      if (angleDiff < 0.08) blipAlpha[i] = 1;
+      else blipAlpha[i] = Math.max(0, blipAlpha[i] - 0.006);
+
+      if (blipAlpha[i] < 0.02) return;
+      const bx = cx + Math.cos(c.angle) * R * c.dist;
+      const by = cy + Math.sin(c.angle) * R * c.dist;
+      const col = c.type === 'friendly' ? '#00ff88' : c.type === 'hostile' ? '#ff2d55' : '#ffb700';
+      ctx.beginPath();
+      ctx.arc(bx, by, 5, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = blipAlpha[i];
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 16;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = col;
+      ctx.font = 'bold 8px monospace';
+      ctx.fillText(c.label, bx + 7, by - 4);
+    });
+
+    // Outer ring border
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0,229,255,0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#00ff88';
+    ctx.shadowColor = '#00ff88';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Range labels
+    ctx.fillStyle = 'rgba(0,229,255,0.5)';
+    ctx.font = '9px monospace';
+    ctx.fillText('50 NM', cx + 4, cy - R * 0.25 + 3);
+    ctx.fillText('100 NM', cx + 4, cy - R * 0.5 + 3);
+    ctx.fillText('150 NM', cx + 4, cy - R * 0.75 + 3);
+
+    sweepAngle += SWEEP_SPEED;
+    if (sweepAngle > Math.PI * 2) sweepAngle -= Math.PI * 2;
+    frame++;
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// Auto-init radar if tracking page already open
+document.getElementById('trackingPage')?.addEventListener('transitionend', () => {
+  if (document.getElementById('trackingPage').classList.contains('open')) initRadarCanvas();
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   AIRCRAFT COMPARISON TOOL
+═══════════════════════════════════════════════════════════════ */
+function populateCompareSelects() {
+  const opts = aircraftData.map(a => `<option value="${a.id}">${a.name} (${a.country})</option>`).join('');
+  document.getElementById('cmpA').innerHTML = '<option value="">— Select Aircraft A —</option>' + opts;
+  document.getElementById('cmpB').innerHTML = '<option value="">— Select Aircraft B —</option>' + opts;
+}
+
+function extractNumber(str) {
+  const m = str.match(/[\d.]+/);
+  return m ? parseFloat(m[0]) : null;
+}
+
+function runComparison() {
+  const idA = document.getElementById('cmpA').value;
+  const idB = document.getElementById('cmpB').value;
+  const out = document.getElementById('compareResult');
+  if (!idA || !idB || idA === idB) {
+    out.innerHTML = '<p style="text-align:center;color:var(--muted);padding:2rem;">Select two different aircraft to compare.</p>';
+    return;
+  }
+  const A = aircraftData.find(x => x.id === idA);
+  const B = aircraftData.find(x => x.id === idB);
+
+  const specLabels = ['Max Speed','Service Ceiling','Range','G-Limit'];
+  const rows = specLabels.map(label => {
+    const sa = A.specs.find(s => s.label === label);
+    const sb = B.specs.find(s => s.label === label);
+    if (!sa || !sb) return '';
+    const na = extractNumber(sa.value), nb = extractNumber(sb.value);
+    let classA = 'cmp-tie', classB = 'cmp-tie', badgeA = '', badgeB = '';
+    if (na !== null && nb !== null && na !== nb) {
+      if (na > nb) { classA = 'cmp-win'; classB = 'cmp-lose'; badgeA = '<span class="cmp-badge win">WINNER</span>'; badgeB = '<span class="cmp-badge lose">LOWER</span>'; }
+      else          { classB = 'cmp-win'; classA = 'cmp-lose'; badgeB = '<span class="cmp-badge win">WINNER</span>'; badgeA = '<span class="cmp-badge lose">LOWER</span>'; }
+    }
+    return `<tr>
+      <td class="label-col">${label}</td>
+      <td class="${classA}">${sa.value}${badgeA}</td>
+      <td class="${classB}">${sb.value}${badgeB}</td>
+    </tr>`;
+  }).join('');
+
+  // Feature comparison
+  const allFeatures = [...new Set([...A.features, ...B.features])];
+  const featureRows = allFeatures.map(f => {
+    const hasA = A.features.includes(f), hasB = B.features.includes(f);
+    return `<tr>
+      <td class="label-col">${f}</td>
+      <td>${hasA ? '<span style="color:var(--green)">✅ Yes</span>' : '<span style="color:rgba(111,179,216,0.4)">—</span>'}</td>
+      <td>${hasB ? '<span style="color:var(--green)">✅ Yes</span>' : '<span style="color:rgba(111,179,216,0.4)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  const aScore = A.features.length, bScore = B.features.length;
+
+  out.innerHTML = `
+    <div class="cmp-img-row">
+      <img class="cmp-img" src="${A.img}" alt="${A.name}" onerror="this.style.opacity='0.2'">
+      <div style="display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:1.4rem;color:var(--amber);font-weight:900;">VS</div>
+      <img class="cmp-img" src="${B.img}" alt="${B.name}" onerror="this.style.opacity='0.2'">
+    </div>
+    <div class="disc-section-title"><i class="fa-solid fa-gauge-high"></i> Performance Specs</div>
+    <div style="overflow-x:auto; margin-bottom:2.5rem;">
+      <table class="compare-table">
+        <thead><tr>
+          <th class="label-col">Specification</th>
+          <th class="ac-col" style="color:${A.genColor};">${A.name}</th>
+          <th class="ac-col" style="color:${B.genColor};">${B.name}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="disc-section-title"><i class="fa-solid fa-tags"></i> Capability Matrix</div>
+    <div style="overflow-x:auto; margin-bottom:2rem;">
+      <table class="compare-table">
+        <thead><tr>
+          <th class="label-col">Capability</th>
+          <th class="ac-col" style="color:${A.genColor};">${A.name} (${aScore} features)</th>
+          <th class="ac-col" style="color:${B.genColor};">${B.name} (${bScore} features)</th>
+        </tr></thead>
+        <tbody>${featureRows}</tbody>
+      </table>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;">
+      <div class="ac-when-card green">
+        <h4 style="color:${A.genColor};">✅ ${A.name} — Best For</h4>
+        <p>${A.suitable.good.text}</p>
+      </div>
+      <div class="ac-when-card green">
+        <h4 style="color:${B.genColor};">✅ ${B.name} — Best For</h4>
+        <p>${B.suitable.good.text}</p>
+      </div>
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   AEROSPACE CALCULATORS
+═══════════════════════════════════════════════════════════════ */
+function switchCalc(name, btn) {
+  document.querySelectorAll('.calc-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.calc-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('calc-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function calcMach() {
+  const mach = parseFloat(document.getElementById('machIn').value);
+  const sos  = parseFloat(document.getElementById('machAlt').value);
+  const out  = document.getElementById('machResults');
+  if (isNaN(mach) || mach <= 0) { out.innerHTML = ''; return; }
+  const ms   = mach * sos;
+  const kmh  = ms * 3.6;
+  const mph  = ms * 2.237;
+  const kt   = ms * 1.944;
+  const fps  = ms * 3.281;
+  let warn = '';
+  if (mach >= 5)   warn = `<div class="calc-danger">⚠ Hypersonic regime (Mach ${mach.toFixed(2)}): Severe aerodynamic heating, plasma effects, scramjet required.</div>`;
+  else if (mach >= 2.5) warn = `<div class="calc-warning">⚠ High supersonic: Significant kinetic heating on leading edges. Titanium/steel structure may be required.</div>`;
+  else if (mach >= 1) warn = `<div class="calc-warning">✈ Supersonic regime: Shock waves form at leading edges. Drag increases sharply past Mach 1 (wave drag).</div>`;
+  out.innerHTML = `
+    <div class="calc-result-box"><div class="calc-result-label">km/h</div><div class="calc-result-value">${kmh.toFixed(0)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">mph</div><div class="calc-result-value">${mph.toFixed(0)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Knots</div><div class="calc-result-value">${kt.toFixed(0)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">ft/s</div><div class="calc-result-value">${fps.toFixed(0)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">m/s</div><div class="calc-result-value">${ms.toFixed(1)}</div></div>
+  ` + warn;
+}
+
+function calcAlt() {
+  const pa   = parseFloat(document.getElementById('altPA').value);
+  const temp = parseFloat(document.getElementById('altTemp').value);
+  const hum  = parseFloat(document.getElementById('altHum').value) || 0;
+  const out  = document.getElementById('altResults');
+  if (isNaN(pa) || isNaN(temp)) { out.innerHTML = ''; return; }
+  const isa   = 15 - (pa / 1000 * 1.98);
+  const vapPr = hum / 100 * 6.1078 * Math.pow(10, (7.5 * temp) / (237.3 + temp));
+  const da    = pa + (120 * (temp - isa)) - (vapPr * 0.02);
+  const perf  = Math.round(((da - pa) / 1000) * 3);
+  let warn = da > pa + 3000 ? `<div class="calc-danger">⚠ High Density Altitude (+${Math.round(da-pa).toLocaleString()} ft above pressure alt). Significant performance degradation: reduced climb rate, longer takeoff roll, lower thrust.</div>` : '';
+  out.innerHTML = `
+    <div class="calc-result-box"><div class="calc-result-label">Density Alt (ft)</div><div class="calc-result-value">${Math.round(da).toLocaleString()}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">ISA Temp (°C)</div><div class="calc-result-value">${isa.toFixed(1)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Temp Dev</div><div class="calc-result-value">+${(temp-isa).toFixed(1)}°</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Perf Loss Est</div><div class="calc-result-value">~${Math.max(0,perf)}%</div></div>
+  ` + warn;
+}
+
+function calcG() {
+  const v = parseFloat(document.getElementById('gSpeed').value);
+  const b = parseFloat(document.getElementById('gBank').value);
+  const out = document.getElementById('gResults');
+  if (isNaN(v) || isNaN(b) || b <= 0 || b >= 90) { out.innerHTML = ''; return; }
+  const g     = 1 / Math.cos(b * Math.PI / 180);
+  const vms   = v * 0.514444;
+  const r     = (vms * vms) / (9.81 * Math.tan(b * Math.PI / 180));
+  const ror   = (3438 * Math.tan(b * Math.PI / 180)) / v;
+  let warn = g > 9 ? `<div class="calc-danger">⛔ ${g.toFixed(2)}G exceeds most fighter structural limits (+9G). GLOC risk is extreme.</div>` :
+             g > 6 ? `<div class="calc-warning">⚠ ${g.toFixed(2)}G: G-suit required. Risk of G-LOC without AGSM. Near limits for some airframes.</div>` : '';
+  out.innerHTML = `
+    <div class="calc-result-box"><div class="calc-result-label">Load Factor</div><div class="calc-result-value">${g.toFixed(2)} G</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Turn Radius</div><div class="calc-result-value">${(r/1000).toFixed(2)} km</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Turn Rate</div><div class="calc-result-value">${ror.toFixed(1)} °/s</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Turn Time</div><div class="calc-result-value">${(360/ror).toFixed(0)} sec</div></div>
+  ` + warn;
+}
+
+function calcFuel() {
+  const cap   = parseFloat(document.getElementById('fuelCap').value);
+  const flow  = parseFloat(document.getElementById('fuelFlow').value);
+  const spd   = parseFloat(document.getElementById('fuelSpeed').value);
+  const out   = document.getElementById('fuelResults');
+  if (isNaN(cap) || isNaN(flow) || isNaN(spd) || flow <= 0) { out.innerHTML = ''; return; }
+  const reserveFuel = cap * 0.15;
+  const usable  = cap - reserveFuel;
+  const hrs     = usable / flow;
+  const range   = hrs * spd;
+  const combat  = range * 0.55;
+  out.innerHTML = `
+    <div class="calc-result-box"><div class="calc-result-label">Max Range</div><div class="calc-result-value">${Math.round(range).toLocaleString()} km</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Combat Range</div><div class="calc-result-value">${Math.round(combat).toLocaleString()} km</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Endurance</div><div class="calc-result-value">${hrs.toFixed(2)} hrs</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Reserve Fuel</div><div class="calc-result-value">${Math.round(reserveFuel)} kg</div></div>
+  `;
+}
+
+function calcTW() {
+  const T = parseFloat(document.getElementById('thrustVal').value) * 1000;
+  const m = parseFloat(document.getElementById('twMass').value);
+  const g = parseFloat(document.getElementById('twG').value) || 9.81;
+  const out = document.getElementById('twResults');
+  if (isNaN(T) || isNaN(m) || m <= 0) { out.innerHTML = ''; return; }
+  const W = m * g;
+  const tw = T / W;
+  const climbRateEst = tw > 1 ? `${((tw - 1) * 5000).toFixed(0)} ft/min (est.)` : 'Cannot climb vertically';
+  let note = tw >= 1.1 ? `<div class="calc-result-box" style="border-color:rgba(0,255,136,0.3);"><div class="calc-result-label">Verdict</div><div class="calc-result-value" style="color:var(--green);font-size:.75rem;">SUPERMANEUVERABLE</div></div>` :
+             tw >= 0.85 ? `<div class="calc-result-box" style="border-color:rgba(255,183,0,0.3);"><div class="calc-result-label">Verdict</div><div class="calc-result-value" style="color:var(--amber);font-size:.75rem;">ADEQUATE</div></div>` :
+             `<div class="calc-result-box" style="border-color:rgba(255,45,85,0.3);"><div class="calc-result-label">Verdict</div><div class="calc-result-value" style="color:var(--red);font-size:.75rem;">UNDERPOWERED</div></div>`;
+  out.innerHTML = `
+    <div class="calc-result-box"><div class="calc-result-label">T/W Ratio</div><div class="calc-result-value" style="color:${tw>=1?'var(--green)':'var(--amber)'}">${tw.toFixed(3)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Weight (kN)</div><div class="calc-result-value">${(W/1000).toFixed(1)}</div></div>
+    <div class="calc-result-box"><div class="calc-result-label">Vert. Climb</div><div class="calc-result-value" style="font-size:.68rem;">${climbRateEst}</div></div>
+    ${note}
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ISS LIVE TRACKER
+═══════════════════════════════════════════════════════════════ */
+let issInterval = null;
+let issTrail = [];
+
+function startISS() {
+  fetchISS();
+  issInterval = setInterval(fetchISS, 5000);
+}
+function stopISS() {
+  if (issInterval) { clearInterval(issInterval); issInterval = null; }
+}
+
+async function fetchISS() {
+  try {
+    const r = await fetch('https://api.wheretheiss.at/v1/satellites/25544');
+    const d = await r.json();
+    const lat = parseFloat(d.latitude), lon = parseFloat(d.longitude);
+    const alt = parseFloat(d.altitude).toFixed(1);
+    document.getElementById('issLat').textContent   = lat.toFixed(4) + '°';
+    document.getElementById('issLon').textContent   = lon.toFixed(4) + '°';
+    document.getElementById('issAlt').textContent   = alt + ' km';
+    document.getElementById('issUpdate').textContent = new Date().toLocaleTimeString();
+    issTrail.push({ lat, lon });
+    if (issTrail.length > 80) issTrail.shift();
+    drawISSMap(lat, lon);
+  } catch(e) {
+    document.getElementById('issUpdate').textContent = 'API error — retrying…';
+    drawISSMapFallback();
+  }
+}
+
+function lonToX(lon, W) { return ((lon + 180) / 360) * W; }
+function latToY(lat, H) { return ((90 - lat) / 180) * H; }
+
+function drawISSMap(lat, lon) {
+  const canvas = document.getElementById('issCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#020c18'; ctx.fillRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,229,255,0.07)'; ctx.lineWidth = 0.5;
+  for (let lo = -180; lo <= 180; lo += 30) {
+    const x = lonToX(lo, W);
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let la = -90; la <= 90; la += 30) {
+    const y = latToY(la, H);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Equator & prime meridian
+  ctx.strokeStyle = 'rgba(0,229,255,0.18)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+
+  // Coverage circle (~2200km viewing radius)
+  const covR = (2200 / 40075) * W;
+  const cx = lonToX(lon, W), cy = latToY(lat, H);
+  ctx.beginPath(); ctx.arc(cx, cy, covR, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,229,255,0.04)';
+  ctx.strokeStyle = 'rgba(0,229,255,0.15)'; ctx.lineWidth = 1;
+  ctx.fill(); ctx.stroke();
+
+  // Orbital trail
+  if (issTrail.length > 1) {
+    ctx.beginPath();
+    issTrail.forEach((p, i) => {
+      const px = lonToX(p.lon, W), py = latToY(p.lat, H);
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = 'rgba(0,255,136,0.4)'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // ISS marker
+  ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI*2);
+  ctx.fillStyle = '#00ff88';
+  ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 16;
+  ctx.fill(); ctx.shadowBlur = 0;
+
+  ctx.beginPath(); ctx.arc(cx, cy, 13, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(0,255,136,0.4)'; ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = '#00ff88'; ctx.font = 'bold 9px monospace';
+  ctx.fillText('ISS', cx + 10, cy - 8);
+
+  // Lat/Lon labels
+  ctx.fillStyle = 'rgba(0,229,255,0.35)'; ctx.font = '8px monospace';
+  [-60,-30,0,30,60].forEach(la => ctx.fillText(la+'°', 3, latToY(la, H) + 3));
+  [-150,-90,-30,30,90,150].forEach(lo => ctx.fillText(lo+'°', lonToX(lo, W) - 8, H - 3));
+}
+
+function drawISSMapFallback() {
+  const canvas = document.getElementById('issCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#020c18'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(111,179,216,0.4)'; ctx.font = '13px monospace';
+  ctx.fillText('Awaiting ISS telemetry…', 30, canvas.height/2);
+}
+
+</script>
+</body>
+</html>
